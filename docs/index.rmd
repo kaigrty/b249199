@@ -8,22 +8,19 @@ date: "2025-11-04"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+## Background
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+This report aims to explore trends in depression & anxiety drug prescriptions with education across Scotland.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+This will be done using Public Health Scotland prescribing data from July 2025 ==(might change to 2025-)== and data from Scotland's census 2022.
 
-```{r cars}
-summary(cars)
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(janitor)
+library(gt)
+library(here)
+
+data_july2025 <- read_csv("https://www.opendata.nhs.scot/dataset/84393984-14e9-4b0d-a797-b288db64d088/resource/12448904-f11c-4a0f-8dab-8b47c5abebf8/download/pitc202507.csv") %>% 
+  clean_names()
+
 ```
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
