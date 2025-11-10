@@ -12,7 +12,7 @@
 
 <meta name="date" content="2025-11-04" />
 
-<title>Assessment</title>
+<title>Correlations between antidepressant prescriptions and education across Scotland</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -349,7 +349,8 @@ display: none;
 
 
 
-<h1 class="title toc-ignore">Assessment</h1>
+<h1 class="title toc-ignore">Correlations between antidepressant
+prescriptions and education across Scotland</h1>
 <h4 class="date">2025-11-04</h4>
 
 </div>
@@ -357,18 +358,502 @@ display: none;
 
 <div id="background" class="section level2">
 <h2>Background</h2>
-<p>This report aims to explore trends in depression &amp; anxiety drug
-prescriptions with education across Scotland.</p>
-<p>This will be done using Public Health Scotland prescribing data from
-July 2025 ==(might change to 2025-)== and data from Scotland’s census
-2022.</p>
+<p>This report aims to explore the relationship between antidepressant
+prescriptions and education in specific localities across Scotland,
+using Public Health Scotland prescribing data from January to June 2025
+and data from Scotland’s census 2022.</p>
 <pre class="r"><code>library(tidyverse)
 library(janitor)
 library(gt)
 library(here)
+library(dplyr)
 
-data_july2025 &lt;- read_csv(&quot;https://www.opendata.nhs.scot/dataset/84393984-14e9-4b0d-a797-b288db64d088/resource/12448904-f11c-4a0f-8dab-8b47c5abebf8/download/pitc202507.csv&quot;) %&gt;% 
+data_jan_june25 &lt;- read_csv(&quot;https://www.opendata.nhs.scot/dataset/84393984-14e9-4b0d-a797-b288db64d088/resource/9de908b3-9c28-4cc3-aa32-72350a0579d1/download/hb_pitc2025_01_06.csv&quot;) %&gt;% 
   clean_names()</code></pre>
+<p>First, we need to find all the antidepressants being prescribed in
+Scotland. This is made possible by the inclusion of BNF item codes in
+the Public Health Scotland dataset. By identifying the relevant codes
+for antidepressants we can filter the dataset down to just the drugs we
+want to look at.</p>
+<p>In order to identify the code for antidepressants, we can look at the
+BNF code information provided by the NHS Business Services Authority.
+Available at: <a href="https://opendata.nhsbsa.net/dataset/bnf-code-information-current-year" class="uri">https://opendata.nhsbsa.net/dataset/bnf-code-information-current-year</a></p>
+<pre class="r"><code>BNF_info &lt;- read_csv(here(&quot;docs/bnf_code_current_202506_version_88.csv&quot;))
+
+# We filter the data to show just the antidepressants
+BNF_info_antidepressants &lt;- BNF_info %&gt;% 
+  filter(BNF_SECTION == &quot;Antidepressant drugs&quot;)
+  
+unique(BNF_info_antidepressants$BNF_SECTION_CODE)</code></pre>
+<pre><code>## [1] &quot;0403&quot;</code></pre>
+<p>Now we can see the section code, and we could also get the codes for
+specific antidepressant drugs and even formulations or dosages.</p>
+<p>Let’s use this information to filter the original dataset, and we can
+find out the most commonly prescribed antidepressants too.</p>
+<pre class="r"><code>data_antidepressants &lt;- data_jan_june25 %&gt;% 
+  filter(startsWith(bnf_item_code, &quot;0403&quot;)) %&gt;%  # show only the antidepressants prescribed
+  group_by(bnf_item_description) %&gt;% 
+  summarise(total_quantity = sum(paid_quantity)) %&gt;% 
+  arrange(-total_quantity) %&gt;% 
+  head(n = 20) %&gt;% 
+  gt()
+  
+data_antidepressants</code></pre>
+<div id="nddsnwivlq" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#nddsnwivlq table {
+font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+-webkit-font-smoothing: antialiased;
+-moz-osx-font-smoothing: grayscale;
+}
+#nddsnwivlq thead, #nddsnwivlq tbody, #nddsnwivlq tfoot, #nddsnwivlq tr, #nddsnwivlq td, #nddsnwivlq th {
+border-style: none;
+}
+#nddsnwivlq p {
+margin: 0;
+padding: 0;
+}
+#nddsnwivlq .gt_table {
+display: table;
+border-collapse: collapse;
+line-height: normal;
+margin-left: auto;
+margin-right: auto;
+color: #333333;
+font-size: 16px;
+font-weight: normal;
+font-style: normal;
+background-color: #FFFFFF;
+width: auto;
+border-top-style: solid;
+border-top-width: 2px;
+border-top-color: #A8A8A8;
+border-right-style: none;
+border-right-width: 2px;
+border-right-color: #D3D3D3;
+border-bottom-style: solid;
+border-bottom-width: 2px;
+border-bottom-color: #A8A8A8;
+border-left-style: none;
+border-left-width: 2px;
+border-left-color: #D3D3D3;
+}
+#nddsnwivlq .gt_caption {
+padding-top: 4px;
+padding-bottom: 4px;
+}
+#nddsnwivlq .gt_title {
+color: #333333;
+font-size: 125%;
+font-weight: initial;
+padding-top: 4px;
+padding-bottom: 4px;
+padding-left: 5px;
+padding-right: 5px;
+border-bottom-color: #FFFFFF;
+border-bottom-width: 0;
+}
+#nddsnwivlq .gt_subtitle {
+color: #333333;
+font-size: 85%;
+font-weight: initial;
+padding-top: 3px;
+padding-bottom: 5px;
+padding-left: 5px;
+padding-right: 5px;
+border-top-color: #FFFFFF;
+border-top-width: 0;
+}
+#nddsnwivlq .gt_heading {
+background-color: #FFFFFF;
+text-align: center;
+border-bottom-color: #FFFFFF;
+border-left-style: none;
+border-left-width: 1px;
+border-left-color: #D3D3D3;
+border-right-style: none;
+border-right-width: 1px;
+border-right-color: #D3D3D3;
+}
+#nddsnwivlq .gt_bottom_border {
+border-bottom-style: solid;
+border-bottom-width: 2px;
+border-bottom-color: #D3D3D3;
+}
+#nddsnwivlq .gt_col_headings {
+border-top-style: solid;
+border-top-width: 2px;
+border-top-color: #D3D3D3;
+border-bottom-style: solid;
+border-bottom-width: 2px;
+border-bottom-color: #D3D3D3;
+border-left-style: none;
+border-left-width: 1px;
+border-left-color: #D3D3D3;
+border-right-style: none;
+border-right-width: 1px;
+border-right-color: #D3D3D3;
+}
+#nddsnwivlq .gt_col_heading {
+color: #333333;
+background-color: #FFFFFF;
+font-size: 100%;
+font-weight: normal;
+text-transform: inherit;
+border-left-style: none;
+border-left-width: 1px;
+border-left-color: #D3D3D3;
+border-right-style: none;
+border-right-width: 1px;
+border-right-color: #D3D3D3;
+vertical-align: bottom;
+padding-top: 5px;
+padding-bottom: 6px;
+padding-left: 5px;
+padding-right: 5px;
+overflow-x: hidden;
+}
+#nddsnwivlq .gt_column_spanner_outer {
+color: #333333;
+background-color: #FFFFFF;
+font-size: 100%;
+font-weight: normal;
+text-transform: inherit;
+padding-top: 0;
+padding-bottom: 0;
+padding-left: 4px;
+padding-right: 4px;
+}
+#nddsnwivlq .gt_column_spanner_outer:first-child {
+padding-left: 0;
+}
+#nddsnwivlq .gt_column_spanner_outer:last-child {
+padding-right: 0;
+}
+#nddsnwivlq .gt_column_spanner {
+border-bottom-style: solid;
+border-bottom-width: 2px;
+border-bottom-color: #D3D3D3;
+vertical-align: bottom;
+padding-top: 5px;
+padding-bottom: 5px;
+overflow-x: hidden;
+display: inline-block;
+width: 100%;
+}
+#nddsnwivlq .gt_spanner_row {
+border-bottom-style: hidden;
+}
+#nddsnwivlq .gt_group_heading {
+padding-top: 8px;
+padding-bottom: 8px;
+padding-left: 5px;
+padding-right: 5px;
+color: #333333;
+background-color: #FFFFFF;
+font-size: 100%;
+font-weight: initial;
+text-transform: inherit;
+border-top-style: solid;
+border-top-width: 2px;
+border-top-color: #D3D3D3;
+border-bottom-style: solid;
+border-bottom-width: 2px;
+border-bottom-color: #D3D3D3;
+border-left-style: none;
+border-left-width: 1px;
+border-left-color: #D3D3D3;
+border-right-style: none;
+border-right-width: 1px;
+border-right-color: #D3D3D3;
+vertical-align: middle;
+text-align: left;
+}
+#nddsnwivlq .gt_empty_group_heading {
+padding: 0.5px;
+color: #333333;
+background-color: #FFFFFF;
+font-size: 100%;
+font-weight: initial;
+border-top-style: solid;
+border-top-width: 2px;
+border-top-color: #D3D3D3;
+border-bottom-style: solid;
+border-bottom-width: 2px;
+border-bottom-color: #D3D3D3;
+vertical-align: middle;
+}
+#nddsnwivlq .gt_from_md > :first-child {
+margin-top: 0;
+}
+#nddsnwivlq .gt_from_md > :last-child {
+margin-bottom: 0;
+}
+#nddsnwivlq .gt_row {
+padding-top: 8px;
+padding-bottom: 8px;
+padding-left: 5px;
+padding-right: 5px;
+margin: 10px;
+border-top-style: solid;
+border-top-width: 1px;
+border-top-color: #D3D3D3;
+border-left-style: none;
+border-left-width: 1px;
+border-left-color: #D3D3D3;
+border-right-style: none;
+border-right-width: 1px;
+border-right-color: #D3D3D3;
+vertical-align: middle;
+overflow-x: hidden;
+}
+#nddsnwivlq .gt_stub {
+color: #333333;
+background-color: #FFFFFF;
+font-size: 100%;
+font-weight: initial;
+text-transform: inherit;
+border-right-style: solid;
+border-right-width: 2px;
+border-right-color: #D3D3D3;
+padding-left: 5px;
+padding-right: 5px;
+}
+#nddsnwivlq .gt_stub_row_group {
+color: #333333;
+background-color: #FFFFFF;
+font-size: 100%;
+font-weight: initial;
+text-transform: inherit;
+border-right-style: solid;
+border-right-width: 2px;
+border-right-color: #D3D3D3;
+padding-left: 5px;
+padding-right: 5px;
+vertical-align: top;
+}
+#nddsnwivlq .gt_row_group_first td {
+border-top-width: 2px;
+}
+#nddsnwivlq .gt_row_group_first th {
+border-top-width: 2px;
+}
+#nddsnwivlq .gt_summary_row {
+color: #333333;
+background-color: #FFFFFF;
+text-transform: inherit;
+padding-top: 8px;
+padding-bottom: 8px;
+padding-left: 5px;
+padding-right: 5px;
+}
+#nddsnwivlq .gt_first_summary_row {
+border-top-style: solid;
+border-top-color: #D3D3D3;
+}
+#nddsnwivlq .gt_first_summary_row.thick {
+border-top-width: 2px;
+}
+#nddsnwivlq .gt_last_summary_row {
+padding-top: 8px;
+padding-bottom: 8px;
+padding-left: 5px;
+padding-right: 5px;
+border-bottom-style: solid;
+border-bottom-width: 2px;
+border-bottom-color: #D3D3D3;
+}
+#nddsnwivlq .gt_grand_summary_row {
+color: #333333;
+background-color: #FFFFFF;
+text-transform: inherit;
+padding-top: 8px;
+padding-bottom: 8px;
+padding-left: 5px;
+padding-right: 5px;
+}
+#nddsnwivlq .gt_first_grand_summary_row {
+padding-top: 8px;
+padding-bottom: 8px;
+padding-left: 5px;
+padding-right: 5px;
+border-top-style: double;
+border-top-width: 6px;
+border-top-color: #D3D3D3;
+}
+#nddsnwivlq .gt_last_grand_summary_row_top {
+padding-top: 8px;
+padding-bottom: 8px;
+padding-left: 5px;
+padding-right: 5px;
+border-bottom-style: double;
+border-bottom-width: 6px;
+border-bottom-color: #D3D3D3;
+}
+#nddsnwivlq .gt_striped {
+background-color: rgba(128, 128, 128, 0.05);
+}
+#nddsnwivlq .gt_table_body {
+border-top-style: solid;
+border-top-width: 2px;
+border-top-color: #D3D3D3;
+border-bottom-style: solid;
+border-bottom-width: 2px;
+border-bottom-color: #D3D3D3;
+}
+#nddsnwivlq .gt_footnotes {
+color: #333333;
+background-color: #FFFFFF;
+border-bottom-style: none;
+border-bottom-width: 2px;
+border-bottom-color: #D3D3D3;
+border-left-style: none;
+border-left-width: 2px;
+border-left-color: #D3D3D3;
+border-right-style: none;
+border-right-width: 2px;
+border-right-color: #D3D3D3;
+}
+#nddsnwivlq .gt_footnote {
+margin: 0px;
+font-size: 90%;
+padding-top: 4px;
+padding-bottom: 4px;
+padding-left: 5px;
+padding-right: 5px;
+}
+#nddsnwivlq .gt_sourcenotes {
+color: #333333;
+background-color: #FFFFFF;
+border-bottom-style: none;
+border-bottom-width: 2px;
+border-bottom-color: #D3D3D3;
+border-left-style: none;
+border-left-width: 2px;
+border-left-color: #D3D3D3;
+border-right-style: none;
+border-right-width: 2px;
+border-right-color: #D3D3D3;
+}
+#nddsnwivlq .gt_sourcenote {
+font-size: 90%;
+padding-top: 4px;
+padding-bottom: 4px;
+padding-left: 5px;
+padding-right: 5px;
+}
+#nddsnwivlq .gt_left {
+text-align: left;
+}
+#nddsnwivlq .gt_center {
+text-align: center;
+}
+#nddsnwivlq .gt_right {
+text-align: right;
+font-variant-numeric: tabular-nums;
+}
+#nddsnwivlq .gt_font_normal {
+font-weight: normal;
+}
+#nddsnwivlq .gt_font_bold {
+font-weight: bold;
+}
+#nddsnwivlq .gt_font_italic {
+font-style: italic;
+}
+#nddsnwivlq .gt_super {
+font-size: 65%;
+}
+#nddsnwivlq .gt_footnote_marks {
+font-size: 75%;
+vertical-align: 0.4em;
+position: initial;
+}
+#nddsnwivlq .gt_asterisk {
+font-size: 100%;
+vertical-align: 0;
+}
+#nddsnwivlq .gt_indent_1 {
+text-indent: 5px;
+}
+#nddsnwivlq .gt_indent_2 {
+text-indent: 10px;
+}
+#nddsnwivlq .gt_indent_3 {
+text-indent: 15px;
+}
+#nddsnwivlq .gt_indent_4 {
+text-indent: 20px;
+}
+#nddsnwivlq .gt_indent_5 {
+text-indent: 25px;
+}
+#nddsnwivlq .katex-display {
+display: inline-flex !important;
+margin-bottom: 0.75em !important;
+}
+#nddsnwivlq div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
+height: 0px !important;
+}
+</style>
+<table class="gt_table" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
+  <thead>
+    <tr class="gt_col_headings">
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" scope="col" id="bnf_item_description">bnf_item_description</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" scope="col" id="total_quantity">total_quantity</th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr><td headers="bnf_item_description" class="gt_row gt_left">AMITRIPTYLINE 10MG TABLETS</td>
+<td headers="total_quantity" class="gt_row gt_right">33273446</td></tr>
+    <tr><td headers="bnf_item_description" class="gt_row gt_left">FLUOXETINE 20MG CAPSULES</td>
+<td headers="total_quantity" class="gt_row gt_right">26607421</td></tr>
+    <tr><td headers="bnf_item_description" class="gt_row gt_left">SERTRALINE 100MG TABLETS</td>
+<td headers="total_quantity" class="gt_row gt_right">24133901</td></tr>
+    <tr><td headers="bnf_item_description" class="gt_row gt_left">SERTRALINE 50MG TABLETS</td>
+<td headers="total_quantity" class="gt_row gt_right">20668554</td></tr>
+    <tr><td headers="bnf_item_description" class="gt_row gt_left">CITALOPRAM 20MG TABLETS</td>
+<td headers="total_quantity" class="gt_row gt_right">11499550</td></tr>
+    <tr><td headers="bnf_item_description" class="gt_row gt_left">AMITRIPTYLINE 25MG TABLETS</td>
+<td headers="total_quantity" class="gt_row gt_right">10293676</td></tr>
+    <tr><td headers="bnf_item_description" class="gt_row gt_left">MIRTAZAPINE 15MG TABLETS</td>
+<td headers="total_quantity" class="gt_row gt_right">7254584</td></tr>
+    <tr><td headers="bnf_item_description" class="gt_row gt_left">DULOXETINE 60MG GASTRO-RESISTANT CAPSULES</td>
+<td headers="total_quantity" class="gt_row gt_right">6097991</td></tr>
+    <tr><td headers="bnf_item_description" class="gt_row gt_left">MIRTAZAPINE 30MG TABLETS</td>
+<td headers="total_quantity" class="gt_row gt_right">5956930</td></tr>
+    <tr><td headers="bnf_item_description" class="gt_row gt_left">AMITRIPTYLINE 50MG TABLETS</td>
+<td headers="total_quantity" class="gt_row gt_right">5892861</td></tr>
+    <tr><td headers="bnf_item_description" class="gt_row gt_left">CITALOPRAM 10MG TABLETS</td>
+<td headers="total_quantity" class="gt_row gt_right">5671254</td></tr>
+    <tr><td headers="bnf_item_description" class="gt_row gt_left">MIRTAZAPINE 45MG TABLETS</td>
+<td headers="total_quantity" class="gt_row gt_right">5658816</td></tr>
+    <tr><td headers="bnf_item_description" class="gt_row gt_left">VENLAFAXINE 75MG TABLETS</td>
+<td headers="total_quantity" class="gt_row gt_right">4426021</td></tr>
+    <tr><td headers="bnf_item_description" class="gt_row gt_left">NORTRIPTYLINE 10MG TABLETS</td>
+<td headers="total_quantity" class="gt_row gt_right">4054146</td></tr>
+    <tr><td headers="bnf_item_description" class="gt_row gt_left">DULOXETINE 30MG GASTRO-RESISTANT CAPSULES</td>
+<td headers="total_quantity" class="gt_row gt_right">3268290</td></tr>
+    <tr><td headers="bnf_item_description" class="gt_row gt_left">CITALOPRAM 40MG TABLETS</td>
+<td headers="total_quantity" class="gt_row gt_right">3151682</td></tr>
+    <tr><td headers="bnf_item_description" class="gt_row gt_left">TRAZODONE 100MG CAPSULES</td>
+<td headers="total_quantity" class="gt_row gt_right">2835660</td></tr>
+    <tr><td headers="bnf_item_description" class="gt_row gt_left">TRAZODONE 50MG CAPSULES</td>
+<td headers="total_quantity" class="gt_row gt_right">2631585</td></tr>
+    <tr><td headers="bnf_item_description" class="gt_row gt_left">VENLAFAXINE 37.5MG TABLETS</td>
+<td headers="total_quantity" class="gt_row gt_right">2421542</td></tr>
+    <tr><td headers="bnf_item_description" class="gt_row gt_left">VENLAFAXINE 150MG MODIFIED-RELEASE TABLETS</td>
+<td headers="total_quantity" class="gt_row gt_right">2323666</td></tr>
+  </tbody>
+  
+</table>
+</div>
+<ul>
+<li>find data for all anxiety/depression drugs</li>
+<li>plot top 20 most frequently prescribed</li>
+<li>join demographic data</li>
+<li>look at correlations generally</li>
+<li>explore dosages?</li>
+</ul>
 </div>
 
 

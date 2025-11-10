@@ -1,5 +1,5 @@
 ---
-title: "Assessment"
+title: "Correlations between antidepressant prescriptions and education across Scotland"
 output: html_document
 date: "2025-11-04"
 ---
@@ -10,17 +10,55 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Background
 
-This report aims to explore trends in depression & anxiety drug prescriptions with education across Scotland.
-
-This will be done using Public Health Scotland prescribing data from July 2025 ==(might change to 2025-)== and data from Scotland's census 2022.
+This report aims to explore the relationship between antidepressant prescriptions and education in specific localities across Scotland, using Public Health Scotland prescribing data from January to June 2025 and data from Scotland's census 2022.
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
 library(tidyverse)
 library(janitor)
 library(gt)
 library(here)
+library(dplyr)
 
-data_july2025 <- read_csv("https://www.opendata.nhs.scot/dataset/84393984-14e9-4b0d-a797-b288db64d088/resource/12448904-f11c-4a0f-8dab-8b47c5abebf8/download/pitc202507.csv") %>% 
+data_jan_june25 <- read_csv("https://www.opendata.nhs.scot/dataset/84393984-14e9-4b0d-a797-b288db64d088/resource/9de908b3-9c28-4cc3-aa32-72350a0579d1/download/hb_pitc2025_01_06.csv") %>% 
   clean_names()
-
 ```
+
+First, we need to find all the antidepressants being prescribed in Scotland. This is made possible by the inclusion of BNF item codes in the Public Health Scotland dataset. By identifying the relevant codes for antidepressants we can filter the dataset down to just the drugs we want to look at.
+
+In order to identify the code for antidepressants, we can look at the BNF code information provided by the NHS Business Services Authority. Available at: <https://opendata.nhsbsa.net/dataset/bnf-code-information-current-year>
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+BNF_info <- read_csv(here("docs/bnf_code_current_202506_version_88.csv"))
+
+# We filter the data to show just the antidepressants
+BNF_info_antidepressants <- BNF_info %>% 
+  filter(BNF_SECTION == "Antidepressant drugs")
+  
+unique(BNF_info_antidepressants$BNF_SECTION_CODE)
+```
+
+Now we can see the section code, and we could also get the codes for specific antidepressant drugs and even formulations or dosages. 
+
+Let's use this information to filter the original dataset, and we can find out the most commonly prescribed antidepressants too.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+data_antidepressants <- data_jan_june25 %>% 
+  filter(startsWith(bnf_item_code, "0403")) %>%  # show only the antidepressants prescribed
+  group_by(bnf_item_description) %>% 
+  summarise(total_quantity = sum(paid_quantity)) %>% 
+  arrange(-total_quantity) %>% 
+  head(n = 20) %>% 
+  gt()
+  
+data_antidepressants
+```
+
+
+
+
+
+- find data for all anxiety/depression drugs
+- plot top 20 most frequently prescribed
+- join demographic data
+- look at correlations generally
+- explore dosages?
