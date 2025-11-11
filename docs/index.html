@@ -12,7 +12,7 @@
 
 <meta name="date" content="2025-11-04" />
 
-<title>Correlations between antidepressant prescriptions and education across Scotland</title>
+<title>Relationship between antidepressant prescriptions and education across Scotland</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -349,7 +349,7 @@ display: none;
 
 
 
-<h1 class="title toc-ignore">Correlations between antidepressant
+<h1 class="title toc-ignore">Relationship between antidepressant
 prescriptions and education across Scotland</h1>
 <h4 class="date">2025-11-04</h4>
 
@@ -358,10 +358,16 @@ prescriptions and education across Scotland</h1>
 
 <div id="background" class="section level2">
 <h2>Background</h2>
+<p>The relationship between mental health and education level has been
+studied extensively, with a number of theories emerging on how the two
+interact. Correlative trends have been observed in PhD students,
+possibly owing to increased stress (1.). While other studies have shown
+a significantly reduced incidence of mental illness in educated
+individuals, hypothesising a protective effect (2.).</p>
 <p>This report aims to explore the relationship between antidepressant
-prescriptions and education in specific localities across Scotland,
-using Public Health Scotland prescribing data from January to June 2025
-and data from Scotland’s census 2022.</p>
+prescriptions and education level in specific healthboards across
+Scotland, using Public Health Scotland prescribing data from January to
+June 2025, and data from Scotland’s census 2022.</p>
 <pre class="r"><code>library(tidyverse)
 library(janitor)
 library(gt)
@@ -386,33 +392,36 @@ BNF_info_antidepressants &lt;- BNF_info %&gt;%
   
 unique(BNF_info_antidepressants$BNF_SECTION_CODE)</code></pre>
 <pre><code>## [1] &quot;0403&quot;</code></pre>
-<p>Now we can see the section code, and we could also get the codes for
-specific antidepressant drugs and even formulations or dosages.</p>
+<p>Now we can see the section code, 0403, and we could also get the
+codes for specific antidepressant drugs and even formulations or dosages
+if needed.</p>
 <p>Let’s use this information to filter the original dataset, and we can
-find out the most commonly prescribed antidepressants too.</p>
+look at the most commonly prescribed antidepressants too.</p>
 <pre class="r"><code>data_antidepressants &lt;- data_jan_june25 %&gt;% 
-  filter(startsWith(bnf_item_code, &quot;0403&quot;)) %&gt;%  # show only the antidepressants prescribed
+  filter(startsWith(bnf_item_code, &quot;0403&quot;)) # show only the antidepressants prescribed
+
+data_antidepressants_table &lt;- data_antidepressants %&gt;% 
   group_by(bnf_item_description) %&gt;% 
   summarise(total_quantity = sum(paid_quantity)) %&gt;% 
   arrange(-total_quantity) %&gt;% 
   head(n = 20) %&gt;% 
   gt()
   
-data_antidepressants</code></pre>
-<div id="nddsnwivlq" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
-<style>#nddsnwivlq table {
+data_antidepressants_table</code></pre>
+<div id="tlbevqthvz" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#tlbevqthvz table {
 font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 -webkit-font-smoothing: antialiased;
 -moz-osx-font-smoothing: grayscale;
 }
-#nddsnwivlq thead, #nddsnwivlq tbody, #nddsnwivlq tfoot, #nddsnwivlq tr, #nddsnwivlq td, #nddsnwivlq th {
+#tlbevqthvz thead, #tlbevqthvz tbody, #tlbevqthvz tfoot, #tlbevqthvz tr, #tlbevqthvz td, #tlbevqthvz th {
 border-style: none;
 }
-#nddsnwivlq p {
+#tlbevqthvz p {
 margin: 0;
 padding: 0;
 }
-#nddsnwivlq .gt_table {
+#tlbevqthvz .gt_table {
 display: table;
 border-collapse: collapse;
 line-height: normal;
@@ -437,11 +446,11 @@ border-left-style: none;
 border-left-width: 2px;
 border-left-color: #D3D3D3;
 }
-#nddsnwivlq .gt_caption {
+#tlbevqthvz .gt_caption {
 padding-top: 4px;
 padding-bottom: 4px;
 }
-#nddsnwivlq .gt_title {
+#tlbevqthvz .gt_title {
 color: #333333;
 font-size: 125%;
 font-weight: initial;
@@ -452,7 +461,7 @@ padding-right: 5px;
 border-bottom-color: #FFFFFF;
 border-bottom-width: 0;
 }
-#nddsnwivlq .gt_subtitle {
+#tlbevqthvz .gt_subtitle {
 color: #333333;
 font-size: 85%;
 font-weight: initial;
@@ -463,7 +472,7 @@ padding-right: 5px;
 border-top-color: #FFFFFF;
 border-top-width: 0;
 }
-#nddsnwivlq .gt_heading {
+#tlbevqthvz .gt_heading {
 background-color: #FFFFFF;
 text-align: center;
 border-bottom-color: #FFFFFF;
@@ -474,12 +483,12 @@ border-right-style: none;
 border-right-width: 1px;
 border-right-color: #D3D3D3;
 }
-#nddsnwivlq .gt_bottom_border {
+#tlbevqthvz .gt_bottom_border {
 border-bottom-style: solid;
 border-bottom-width: 2px;
 border-bottom-color: #D3D3D3;
 }
-#nddsnwivlq .gt_col_headings {
+#tlbevqthvz .gt_col_headings {
 border-top-style: solid;
 border-top-width: 2px;
 border-top-color: #D3D3D3;
@@ -493,7 +502,7 @@ border-right-style: none;
 border-right-width: 1px;
 border-right-color: #D3D3D3;
 }
-#nddsnwivlq .gt_col_heading {
+#tlbevqthvz .gt_col_heading {
 color: #333333;
 background-color: #FFFFFF;
 font-size: 100%;
@@ -512,7 +521,7 @@ padding-left: 5px;
 padding-right: 5px;
 overflow-x: hidden;
 }
-#nddsnwivlq .gt_column_spanner_outer {
+#tlbevqthvz .gt_column_spanner_outer {
 color: #333333;
 background-color: #FFFFFF;
 font-size: 100%;
@@ -523,13 +532,13 @@ padding-bottom: 0;
 padding-left: 4px;
 padding-right: 4px;
 }
-#nddsnwivlq .gt_column_spanner_outer:first-child {
+#tlbevqthvz .gt_column_spanner_outer:first-child {
 padding-left: 0;
 }
-#nddsnwivlq .gt_column_spanner_outer:last-child {
+#tlbevqthvz .gt_column_spanner_outer:last-child {
 padding-right: 0;
 }
-#nddsnwivlq .gt_column_spanner {
+#tlbevqthvz .gt_column_spanner {
 border-bottom-style: solid;
 border-bottom-width: 2px;
 border-bottom-color: #D3D3D3;
@@ -540,10 +549,10 @@ overflow-x: hidden;
 display: inline-block;
 width: 100%;
 }
-#nddsnwivlq .gt_spanner_row {
+#tlbevqthvz .gt_spanner_row {
 border-bottom-style: hidden;
 }
-#nddsnwivlq .gt_group_heading {
+#tlbevqthvz .gt_group_heading {
 padding-top: 8px;
 padding-bottom: 8px;
 padding-left: 5px;
@@ -568,7 +577,7 @@ border-right-color: #D3D3D3;
 vertical-align: middle;
 text-align: left;
 }
-#nddsnwivlq .gt_empty_group_heading {
+#tlbevqthvz .gt_empty_group_heading {
 padding: 0.5px;
 color: #333333;
 background-color: #FFFFFF;
@@ -582,13 +591,13 @@ border-bottom-width: 2px;
 border-bottom-color: #D3D3D3;
 vertical-align: middle;
 }
-#nddsnwivlq .gt_from_md > :first-child {
+#tlbevqthvz .gt_from_md > :first-child {
 margin-top: 0;
 }
-#nddsnwivlq .gt_from_md > :last-child {
+#tlbevqthvz .gt_from_md > :last-child {
 margin-bottom: 0;
 }
-#nddsnwivlq .gt_row {
+#tlbevqthvz .gt_row {
 padding-top: 8px;
 padding-bottom: 8px;
 padding-left: 5px;
@@ -606,7 +615,7 @@ border-right-color: #D3D3D3;
 vertical-align: middle;
 overflow-x: hidden;
 }
-#nddsnwivlq .gt_stub {
+#tlbevqthvz .gt_stub {
 color: #333333;
 background-color: #FFFFFF;
 font-size: 100%;
@@ -618,7 +627,7 @@ border-right-color: #D3D3D3;
 padding-left: 5px;
 padding-right: 5px;
 }
-#nddsnwivlq .gt_stub_row_group {
+#tlbevqthvz .gt_stub_row_group {
 color: #333333;
 background-color: #FFFFFF;
 font-size: 100%;
@@ -631,13 +640,13 @@ padding-left: 5px;
 padding-right: 5px;
 vertical-align: top;
 }
-#nddsnwivlq .gt_row_group_first td {
+#tlbevqthvz .gt_row_group_first td {
 border-top-width: 2px;
 }
-#nddsnwivlq .gt_row_group_first th {
+#tlbevqthvz .gt_row_group_first th {
 border-top-width: 2px;
 }
-#nddsnwivlq .gt_summary_row {
+#tlbevqthvz .gt_summary_row {
 color: #333333;
 background-color: #FFFFFF;
 text-transform: inherit;
@@ -646,14 +655,14 @@ padding-bottom: 8px;
 padding-left: 5px;
 padding-right: 5px;
 }
-#nddsnwivlq .gt_first_summary_row {
+#tlbevqthvz .gt_first_summary_row {
 border-top-style: solid;
 border-top-color: #D3D3D3;
 }
-#nddsnwivlq .gt_first_summary_row.thick {
+#tlbevqthvz .gt_first_summary_row.thick {
 border-top-width: 2px;
 }
-#nddsnwivlq .gt_last_summary_row {
+#tlbevqthvz .gt_last_summary_row {
 padding-top: 8px;
 padding-bottom: 8px;
 padding-left: 5px;
@@ -662,7 +671,7 @@ border-bottom-style: solid;
 border-bottom-width: 2px;
 border-bottom-color: #D3D3D3;
 }
-#nddsnwivlq .gt_grand_summary_row {
+#tlbevqthvz .gt_grand_summary_row {
 color: #333333;
 background-color: #FFFFFF;
 text-transform: inherit;
@@ -671,7 +680,7 @@ padding-bottom: 8px;
 padding-left: 5px;
 padding-right: 5px;
 }
-#nddsnwivlq .gt_first_grand_summary_row {
+#tlbevqthvz .gt_first_grand_summary_row {
 padding-top: 8px;
 padding-bottom: 8px;
 padding-left: 5px;
@@ -680,7 +689,7 @@ border-top-style: double;
 border-top-width: 6px;
 border-top-color: #D3D3D3;
 }
-#nddsnwivlq .gt_last_grand_summary_row_top {
+#tlbevqthvz .gt_last_grand_summary_row_top {
 padding-top: 8px;
 padding-bottom: 8px;
 padding-left: 5px;
@@ -689,10 +698,10 @@ border-bottom-style: double;
 border-bottom-width: 6px;
 border-bottom-color: #D3D3D3;
 }
-#nddsnwivlq .gt_striped {
+#tlbevqthvz .gt_striped {
 background-color: rgba(128, 128, 128, 0.05);
 }
-#nddsnwivlq .gt_table_body {
+#tlbevqthvz .gt_table_body {
 border-top-style: solid;
 border-top-width: 2px;
 border-top-color: #D3D3D3;
@@ -700,7 +709,7 @@ border-bottom-style: solid;
 border-bottom-width: 2px;
 border-bottom-color: #D3D3D3;
 }
-#nddsnwivlq .gt_footnotes {
+#tlbevqthvz .gt_footnotes {
 color: #333333;
 background-color: #FFFFFF;
 border-bottom-style: none;
@@ -713,7 +722,7 @@ border-right-style: none;
 border-right-width: 2px;
 border-right-color: #D3D3D3;
 }
-#nddsnwivlq .gt_footnote {
+#tlbevqthvz .gt_footnote {
 margin: 0px;
 font-size: 90%;
 padding-top: 4px;
@@ -721,7 +730,7 @@ padding-bottom: 4px;
 padding-left: 5px;
 padding-right: 5px;
 }
-#nddsnwivlq .gt_sourcenotes {
+#tlbevqthvz .gt_sourcenotes {
 color: #333333;
 background-color: #FFFFFF;
 border-bottom-style: none;
@@ -734,64 +743,64 @@ border-right-style: none;
 border-right-width: 2px;
 border-right-color: #D3D3D3;
 }
-#nddsnwivlq .gt_sourcenote {
+#tlbevqthvz .gt_sourcenote {
 font-size: 90%;
 padding-top: 4px;
 padding-bottom: 4px;
 padding-left: 5px;
 padding-right: 5px;
 }
-#nddsnwivlq .gt_left {
+#tlbevqthvz .gt_left {
 text-align: left;
 }
-#nddsnwivlq .gt_center {
+#tlbevqthvz .gt_center {
 text-align: center;
 }
-#nddsnwivlq .gt_right {
+#tlbevqthvz .gt_right {
 text-align: right;
 font-variant-numeric: tabular-nums;
 }
-#nddsnwivlq .gt_font_normal {
+#tlbevqthvz .gt_font_normal {
 font-weight: normal;
 }
-#nddsnwivlq .gt_font_bold {
+#tlbevqthvz .gt_font_bold {
 font-weight: bold;
 }
-#nddsnwivlq .gt_font_italic {
+#tlbevqthvz .gt_font_italic {
 font-style: italic;
 }
-#nddsnwivlq .gt_super {
+#tlbevqthvz .gt_super {
 font-size: 65%;
 }
-#nddsnwivlq .gt_footnote_marks {
+#tlbevqthvz .gt_footnote_marks {
 font-size: 75%;
 vertical-align: 0.4em;
 position: initial;
 }
-#nddsnwivlq .gt_asterisk {
+#tlbevqthvz .gt_asterisk {
 font-size: 100%;
 vertical-align: 0;
 }
-#nddsnwivlq .gt_indent_1 {
+#tlbevqthvz .gt_indent_1 {
 text-indent: 5px;
 }
-#nddsnwivlq .gt_indent_2 {
+#tlbevqthvz .gt_indent_2 {
 text-indent: 10px;
 }
-#nddsnwivlq .gt_indent_3 {
+#tlbevqthvz .gt_indent_3 {
 text-indent: 15px;
 }
-#nddsnwivlq .gt_indent_4 {
+#tlbevqthvz .gt_indent_4 {
 text-indent: 20px;
 }
-#nddsnwivlq .gt_indent_5 {
+#tlbevqthvz .gt_indent_5 {
 text-indent: 25px;
 }
-#nddsnwivlq .katex-display {
+#tlbevqthvz .katex-display {
 display: inline-flex !important;
 margin-bottom: 0.75em !important;
 }
-#nddsnwivlq div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
+#tlbevqthvz div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
 height: 0px !important;
 }
 </style>
@@ -847,13 +856,528 @@ height: 0px !important;
   
 </table>
 </div>
+<p>Next, let’s add some names for the healthboard to our table, and we
+can get a feel for which healthboard are at the top in antidepressant
+prescription numbers.</p>
+<pre class="r"><code>hb_names &lt;- read_csv(&quot;https://www.opendata.nhs.scot/dataset/9f942fdb-e59e-44f5-b534-d6e17229cc7b/resource/652ff726-e676-4a20-abda-435b98dd7bdc/download/hb14_hb19.csv&quot;)
+
+data_antidepressants &lt;- hb_names %&gt;% 
+  inner_join(data_antidepressants, by = c(&quot;HB&quot; = &quot;hbt&quot;)) %&gt;% 
+  select(!c(HBDateEnacted, HBDateArchived, Country)) %&gt;% 
+  clean_names()
+
+
+prescriptions_table &lt;- data_antidepressants %&gt;% 
+  group_by(hb_name) %&gt;% 
+  summarise(totals = sum(paid_quantity)) %&gt;% 
+  arrange(-totals) %&gt;% 
+  gt()
+
+prescriptions_table # table showing total antidepressant prescriptions by healthboard</code></pre>
+<div id="ykilncfftp" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#ykilncfftp table {
+font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+-webkit-font-smoothing: antialiased;
+-moz-osx-font-smoothing: grayscale;
+}
+#ykilncfftp thead, #ykilncfftp tbody, #ykilncfftp tfoot, #ykilncfftp tr, #ykilncfftp td, #ykilncfftp th {
+border-style: none;
+}
+#ykilncfftp p {
+margin: 0;
+padding: 0;
+}
+#ykilncfftp .gt_table {
+display: table;
+border-collapse: collapse;
+line-height: normal;
+margin-left: auto;
+margin-right: auto;
+color: #333333;
+font-size: 16px;
+font-weight: normal;
+font-style: normal;
+background-color: #FFFFFF;
+width: auto;
+border-top-style: solid;
+border-top-width: 2px;
+border-top-color: #A8A8A8;
+border-right-style: none;
+border-right-width: 2px;
+border-right-color: #D3D3D3;
+border-bottom-style: solid;
+border-bottom-width: 2px;
+border-bottom-color: #A8A8A8;
+border-left-style: none;
+border-left-width: 2px;
+border-left-color: #D3D3D3;
+}
+#ykilncfftp .gt_caption {
+padding-top: 4px;
+padding-bottom: 4px;
+}
+#ykilncfftp .gt_title {
+color: #333333;
+font-size: 125%;
+font-weight: initial;
+padding-top: 4px;
+padding-bottom: 4px;
+padding-left: 5px;
+padding-right: 5px;
+border-bottom-color: #FFFFFF;
+border-bottom-width: 0;
+}
+#ykilncfftp .gt_subtitle {
+color: #333333;
+font-size: 85%;
+font-weight: initial;
+padding-top: 3px;
+padding-bottom: 5px;
+padding-left: 5px;
+padding-right: 5px;
+border-top-color: #FFFFFF;
+border-top-width: 0;
+}
+#ykilncfftp .gt_heading {
+background-color: #FFFFFF;
+text-align: center;
+border-bottom-color: #FFFFFF;
+border-left-style: none;
+border-left-width: 1px;
+border-left-color: #D3D3D3;
+border-right-style: none;
+border-right-width: 1px;
+border-right-color: #D3D3D3;
+}
+#ykilncfftp .gt_bottom_border {
+border-bottom-style: solid;
+border-bottom-width: 2px;
+border-bottom-color: #D3D3D3;
+}
+#ykilncfftp .gt_col_headings {
+border-top-style: solid;
+border-top-width: 2px;
+border-top-color: #D3D3D3;
+border-bottom-style: solid;
+border-bottom-width: 2px;
+border-bottom-color: #D3D3D3;
+border-left-style: none;
+border-left-width: 1px;
+border-left-color: #D3D3D3;
+border-right-style: none;
+border-right-width: 1px;
+border-right-color: #D3D3D3;
+}
+#ykilncfftp .gt_col_heading {
+color: #333333;
+background-color: #FFFFFF;
+font-size: 100%;
+font-weight: normal;
+text-transform: inherit;
+border-left-style: none;
+border-left-width: 1px;
+border-left-color: #D3D3D3;
+border-right-style: none;
+border-right-width: 1px;
+border-right-color: #D3D3D3;
+vertical-align: bottom;
+padding-top: 5px;
+padding-bottom: 6px;
+padding-left: 5px;
+padding-right: 5px;
+overflow-x: hidden;
+}
+#ykilncfftp .gt_column_spanner_outer {
+color: #333333;
+background-color: #FFFFFF;
+font-size: 100%;
+font-weight: normal;
+text-transform: inherit;
+padding-top: 0;
+padding-bottom: 0;
+padding-left: 4px;
+padding-right: 4px;
+}
+#ykilncfftp .gt_column_spanner_outer:first-child {
+padding-left: 0;
+}
+#ykilncfftp .gt_column_spanner_outer:last-child {
+padding-right: 0;
+}
+#ykilncfftp .gt_column_spanner {
+border-bottom-style: solid;
+border-bottom-width: 2px;
+border-bottom-color: #D3D3D3;
+vertical-align: bottom;
+padding-top: 5px;
+padding-bottom: 5px;
+overflow-x: hidden;
+display: inline-block;
+width: 100%;
+}
+#ykilncfftp .gt_spanner_row {
+border-bottom-style: hidden;
+}
+#ykilncfftp .gt_group_heading {
+padding-top: 8px;
+padding-bottom: 8px;
+padding-left: 5px;
+padding-right: 5px;
+color: #333333;
+background-color: #FFFFFF;
+font-size: 100%;
+font-weight: initial;
+text-transform: inherit;
+border-top-style: solid;
+border-top-width: 2px;
+border-top-color: #D3D3D3;
+border-bottom-style: solid;
+border-bottom-width: 2px;
+border-bottom-color: #D3D3D3;
+border-left-style: none;
+border-left-width: 1px;
+border-left-color: #D3D3D3;
+border-right-style: none;
+border-right-width: 1px;
+border-right-color: #D3D3D3;
+vertical-align: middle;
+text-align: left;
+}
+#ykilncfftp .gt_empty_group_heading {
+padding: 0.5px;
+color: #333333;
+background-color: #FFFFFF;
+font-size: 100%;
+font-weight: initial;
+border-top-style: solid;
+border-top-width: 2px;
+border-top-color: #D3D3D3;
+border-bottom-style: solid;
+border-bottom-width: 2px;
+border-bottom-color: #D3D3D3;
+vertical-align: middle;
+}
+#ykilncfftp .gt_from_md > :first-child {
+margin-top: 0;
+}
+#ykilncfftp .gt_from_md > :last-child {
+margin-bottom: 0;
+}
+#ykilncfftp .gt_row {
+padding-top: 8px;
+padding-bottom: 8px;
+padding-left: 5px;
+padding-right: 5px;
+margin: 10px;
+border-top-style: solid;
+border-top-width: 1px;
+border-top-color: #D3D3D3;
+border-left-style: none;
+border-left-width: 1px;
+border-left-color: #D3D3D3;
+border-right-style: none;
+border-right-width: 1px;
+border-right-color: #D3D3D3;
+vertical-align: middle;
+overflow-x: hidden;
+}
+#ykilncfftp .gt_stub {
+color: #333333;
+background-color: #FFFFFF;
+font-size: 100%;
+font-weight: initial;
+text-transform: inherit;
+border-right-style: solid;
+border-right-width: 2px;
+border-right-color: #D3D3D3;
+padding-left: 5px;
+padding-right: 5px;
+}
+#ykilncfftp .gt_stub_row_group {
+color: #333333;
+background-color: #FFFFFF;
+font-size: 100%;
+font-weight: initial;
+text-transform: inherit;
+border-right-style: solid;
+border-right-width: 2px;
+border-right-color: #D3D3D3;
+padding-left: 5px;
+padding-right: 5px;
+vertical-align: top;
+}
+#ykilncfftp .gt_row_group_first td {
+border-top-width: 2px;
+}
+#ykilncfftp .gt_row_group_first th {
+border-top-width: 2px;
+}
+#ykilncfftp .gt_summary_row {
+color: #333333;
+background-color: #FFFFFF;
+text-transform: inherit;
+padding-top: 8px;
+padding-bottom: 8px;
+padding-left: 5px;
+padding-right: 5px;
+}
+#ykilncfftp .gt_first_summary_row {
+border-top-style: solid;
+border-top-color: #D3D3D3;
+}
+#ykilncfftp .gt_first_summary_row.thick {
+border-top-width: 2px;
+}
+#ykilncfftp .gt_last_summary_row {
+padding-top: 8px;
+padding-bottom: 8px;
+padding-left: 5px;
+padding-right: 5px;
+border-bottom-style: solid;
+border-bottom-width: 2px;
+border-bottom-color: #D3D3D3;
+}
+#ykilncfftp .gt_grand_summary_row {
+color: #333333;
+background-color: #FFFFFF;
+text-transform: inherit;
+padding-top: 8px;
+padding-bottom: 8px;
+padding-left: 5px;
+padding-right: 5px;
+}
+#ykilncfftp .gt_first_grand_summary_row {
+padding-top: 8px;
+padding-bottom: 8px;
+padding-left: 5px;
+padding-right: 5px;
+border-top-style: double;
+border-top-width: 6px;
+border-top-color: #D3D3D3;
+}
+#ykilncfftp .gt_last_grand_summary_row_top {
+padding-top: 8px;
+padding-bottom: 8px;
+padding-left: 5px;
+padding-right: 5px;
+border-bottom-style: double;
+border-bottom-width: 6px;
+border-bottom-color: #D3D3D3;
+}
+#ykilncfftp .gt_striped {
+background-color: rgba(128, 128, 128, 0.05);
+}
+#ykilncfftp .gt_table_body {
+border-top-style: solid;
+border-top-width: 2px;
+border-top-color: #D3D3D3;
+border-bottom-style: solid;
+border-bottom-width: 2px;
+border-bottom-color: #D3D3D3;
+}
+#ykilncfftp .gt_footnotes {
+color: #333333;
+background-color: #FFFFFF;
+border-bottom-style: none;
+border-bottom-width: 2px;
+border-bottom-color: #D3D3D3;
+border-left-style: none;
+border-left-width: 2px;
+border-left-color: #D3D3D3;
+border-right-style: none;
+border-right-width: 2px;
+border-right-color: #D3D3D3;
+}
+#ykilncfftp .gt_footnote {
+margin: 0px;
+font-size: 90%;
+padding-top: 4px;
+padding-bottom: 4px;
+padding-left: 5px;
+padding-right: 5px;
+}
+#ykilncfftp .gt_sourcenotes {
+color: #333333;
+background-color: #FFFFFF;
+border-bottom-style: none;
+border-bottom-width: 2px;
+border-bottom-color: #D3D3D3;
+border-left-style: none;
+border-left-width: 2px;
+border-left-color: #D3D3D3;
+border-right-style: none;
+border-right-width: 2px;
+border-right-color: #D3D3D3;
+}
+#ykilncfftp .gt_sourcenote {
+font-size: 90%;
+padding-top: 4px;
+padding-bottom: 4px;
+padding-left: 5px;
+padding-right: 5px;
+}
+#ykilncfftp .gt_left {
+text-align: left;
+}
+#ykilncfftp .gt_center {
+text-align: center;
+}
+#ykilncfftp .gt_right {
+text-align: right;
+font-variant-numeric: tabular-nums;
+}
+#ykilncfftp .gt_font_normal {
+font-weight: normal;
+}
+#ykilncfftp .gt_font_bold {
+font-weight: bold;
+}
+#ykilncfftp .gt_font_italic {
+font-style: italic;
+}
+#ykilncfftp .gt_super {
+font-size: 65%;
+}
+#ykilncfftp .gt_footnote_marks {
+font-size: 75%;
+vertical-align: 0.4em;
+position: initial;
+}
+#ykilncfftp .gt_asterisk {
+font-size: 100%;
+vertical-align: 0;
+}
+#ykilncfftp .gt_indent_1 {
+text-indent: 5px;
+}
+#ykilncfftp .gt_indent_2 {
+text-indent: 10px;
+}
+#ykilncfftp .gt_indent_3 {
+text-indent: 15px;
+}
+#ykilncfftp .gt_indent_4 {
+text-indent: 20px;
+}
+#ykilncfftp .gt_indent_5 {
+text-indent: 25px;
+}
+#ykilncfftp .katex-display {
+display: inline-flex !important;
+margin-bottom: 0.75em !important;
+}
+#ykilncfftp div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
+height: 0px !important;
+}
+</style>
+<table class="gt_table" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
+  <thead>
+    <tr class="gt_col_headings">
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" scope="col" id="hb_name">hb_name</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" scope="col" id="totals">totals</th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr><td headers="hb_name" class="gt_row gt_left">NHS Greater Glasgow and Clyde</td>
+<td headers="totals" class="gt_row gt_right">50309670</td></tr>
+    <tr><td headers="hb_name" class="gt_row gt_left">NHS Lothian</td>
+<td headers="totals" class="gt_row gt_right">32704360</td></tr>
+    <tr><td headers="hb_name" class="gt_row gt_left">NHS Lanarkshire</td>
+<td headers="totals" class="gt_row gt_right">28736619</td></tr>
+    <tr><td headers="hb_name" class="gt_row gt_left">NHS Grampian</td>
+<td headers="totals" class="gt_row gt_right">19226841</td></tr>
+    <tr><td headers="hb_name" class="gt_row gt_left">NHS Fife</td>
+<td headers="totals" class="gt_row gt_right">16881976</td></tr>
+    <tr><td headers="hb_name" class="gt_row gt_left">NHS Ayrshire and Arran</td>
+<td headers="totals" class="gt_row gt_right">16438596</td></tr>
+    <tr><td headers="hb_name" class="gt_row gt_left">NHS Tayside</td>
+<td headers="totals" class="gt_row gt_right">16056529</td></tr>
+    <tr><td headers="hb_name" class="gt_row gt_left">NHS Forth Valley</td>
+<td headers="totals" class="gt_row gt_right">13066232</td></tr>
+    <tr><td headers="hb_name" class="gt_row gt_left">NHS Highland</td>
+<td headers="totals" class="gt_row gt_right">11081534</td></tr>
+    <tr><td headers="hb_name" class="gt_row gt_left">NHS Dumfries and Galloway</td>
+<td headers="totals" class="gt_row gt_right">6288807</td></tr>
+    <tr><td headers="hb_name" class="gt_row gt_left">NHS Borders</td>
+<td headers="totals" class="gt_row gt_right">4769142</td></tr>
+    <tr><td headers="hb_name" class="gt_row gt_left">NHS Western Isles</td>
+<td headers="totals" class="gt_row gt_right">894996</td></tr>
+    <tr><td headers="hb_name" class="gt_row gt_left">NHS Orkney</td>
+<td headers="totals" class="gt_row gt_right">800985</td></tr>
+    <tr><td headers="hb_name" class="gt_row gt_left">NHS Shetland</td>
+<td headers="totals" class="gt_row gt_right">756489</td></tr>
+  </tbody>
+  
+</table>
+</div>
+<p>Using the flexible table builder on the Scottish census website, I
+have created a table with the numbers for highest level of education
+achieved by healthboard. We can join this with the data for
+antidepressants, using the healthboard names we just added.</p>
+<pre class="r"><code>census_data22 &lt;- read_csv(here(&quot;docs/education_level_healthboard.csv&quot;)) %&gt;% 
+  clean_names %&gt;% 
+  filter(health_board_area_2019 != &quot;Total&quot;)
+
+data_antidepressants &lt;- data_antidepressants %&gt;% 
+  mutate(hb_name = gsub(&quot;^NHS &quot;, &quot;&quot;, hb_name)) # removes the NHS prefix in the antidepressant dataset, as the healthboard names don&#39;t include this in the census data
+
+education_antidepressants &lt;- data_antidepressants %&gt;% 
+  full_join(census_data22, by = c(&quot;hb_name&quot; = &quot;health_board_area_2019&quot;))</code></pre>
+<p>Right now our dataset is still way too large, because we’re looking
+at each individual drug prescription. Let’s create a new, simple,
+dataset with just the antidepressant prescribing numbers for each
+healthboard.</p>
+<pre class="r"><code>education_antidepressants %&gt;% 
+  group_by(hb_name) %&gt;% 
+  summarise()</code></pre>
+<pre><code>## # A tibble: 14 × 1
+##    hb_name                  
+##    &lt;chr&gt;                    
+##  1 Ayrshire and Arran       
+##  2 Borders                  
+##  3 Dumfries and Galloway    
+##  4 Fife                     
+##  5 Forth Valley             
+##  6 Grampian                 
+##  7 Greater Glasgow and Clyde
+##  8 Highland                 
+##  9 Lanarkshire              
+## 10 Lothian                  
+## 11 Orkney                   
+## 12 Shetland                 
+## 13 Tayside                  
+## 14 Western Isles</code></pre>
+<p>Because all we have right now are flat numbers, we need to show these
+in proportion to properly gauge the relative prescribing rate of
+antidepressants. Luckily, we have a total column from the census data
+that shows us the population of each healthboard, so we can create a new
+column with ratios of the prescription numbers to these populations.</p>
+</div>
+<div id="next-steps" class="section level2">
+<h2>Next Steps</h2>
 <ul>
 <li>find data for all anxiety/depression drugs</li>
 <li>plot top 20 most frequently prescribed</li>
 <li>join demographic data</li>
 <li>look at correlations generally</li>
 <li>explore dosages?</li>
+<li>possibly look at outcome disparities - where would I get data for
+that</li>
+<li>could stratify with industry</li>
 </ul>
+</div>
+<div id="references" class="section level2">
+<h2>References</h2>
+<ol style="list-style-type: decimal">
+<li>Bergvall, S., Fernström, C., Ranehill, E., &amp; Sandberg, A.
+(2025). The impact of PhD studies on mental health-a longitudinal
+population study. Journal of health economics, 104, 103070. Advance
+online publication. <a href="https://doi.org/10.1016/j.jhealeco.2025.103070" class="uri">https://doi.org/10.1016/j.jhealeco.2025.103070</a></li>
+<li>Maguire, A., Moriarty, J., O’Reilly, D. et al. (2017). Education as
+a predictor of antidepressant and anxiolytic medication use after
+bereavement: a population-based record linkage study. Qual Life Res 26,
+1251–1262. <a href="https://doi.org/10.1007/s11136-016-1440-1" class="uri">https://doi.org/10.1007/s11136-016-1440-1</a></li>
+</ol>
 </div>
 
 

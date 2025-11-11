@@ -102,12 +102,6 @@ education_antidepressants %>%
 
 Because all we have right now are flat numbers, we need to show these in proportion to properly gauge the relative prescribing rate of antidepressants. Luckily, we have a total column from the census data that shows us the population of each healthboard, so we can create a new column with ratios of the prescription numbers to these populations.
 
-```{r}
-
-education_antidepressants %>% 
-  mutate(ratio = )
-
-```
 
 ## Next Steps
 
