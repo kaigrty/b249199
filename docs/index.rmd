@@ -1,5 +1,5 @@
 ---
-title: "Correlations between antidepressant prescriptions and education across Scotland"
+title: "Relationship between antidepressant prescriptions and education across Scotland"
 output: html_document
 date: "2025-11-04"
 ---
@@ -10,7 +10,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Background
 
-This report aims to explore the relationship between antidepressant prescriptions and education in specific localities across Scotland, using Public Health Scotland prescribing data from January to June 2025 and data from Scotland's census 2022.
+The relationship between mental health and education level has been studied extensively, with a number of theories emerging on how the two interact. Correlative trends have been observed in PhD students, possibly owing to increased stress (1.). While other studies have shown a significantly reduced incidence of mental illness in educated individuals, hypothesising a protective effect (2.).
+
+This report aims to explore the relationship between antidepressant prescriptions and education level in specific healthboards across Scotland, using Public Health Scotland prescribing data from January to June 2025, and data from Scotland's census 2022.
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
 library(tidyverse)
@@ -37,28 +39,88 @@ BNF_info_antidepressants <- BNF_info %>%
 unique(BNF_info_antidepressants$BNF_SECTION_CODE)
 ```
 
-Now we can see the section code, and we could also get the codes for specific antidepressant drugs and even formulations or dosages. 
+Now we can see the section code, 0403, and we could also get the codes for specific antidepressant drugs and even formulations or dosages if needed.
 
-Let's use this information to filter the original dataset, and we can find out the most commonly prescribed antidepressants too.
+Let's use this information to filter the original dataset, and we can look at the most commonly prescribed antidepressants too.
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
 data_antidepressants <- data_jan_june25 %>% 
-  filter(startsWith(bnf_item_code, "0403")) %>%  # show only the antidepressants prescribed
+  filter(startsWith(bnf_item_code, "0403")) # show only the antidepressants prescribed
+
+data_antidepressants_table <- data_antidepressants %>% 
   group_by(bnf_item_description) %>% 
   summarise(total_quantity = sum(paid_quantity)) %>% 
   arrange(-total_quantity) %>% 
   head(n = 20) %>% 
   gt()
   
-data_antidepressants
+data_antidepressants_table
+```
+
+Next, let's add some names for the healthboard to our table, and we can get a feel for which healthboard are at the top in antidepressant prescription numbers.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+hb_names <- read_csv("https://www.opendata.nhs.scot/dataset/9f942fdb-e59e-44f5-b534-d6e17229cc7b/resource/652ff726-e676-4a20-abda-435b98dd7bdc/download/hb14_hb19.csv")
+
+data_antidepressants <- hb_names %>% 
+  inner_join(data_antidepressants, by = c("HB" = "hbt")) %>% 
+  select(!c(HBDateEnacted, HBDateArchived, Country)) %>% 
+  clean_names()
+
+
+prescriptions_table <- data_antidepressants %>% 
+  group_by(hb_name) %>% 
+  summarise(totals = sum(paid_quantity)) %>% 
+  arrange(-totals) %>% 
+  gt()
+
+prescriptions_table # table showing total antidepressant prescriptions by healthboard
+
+```
+
+Using the flexible table builder on the Scottish census website, I have created a table with the numbers for highest level of education achieved by healthboard. We can join this with the data for antidepressants, using the healthboard names we just added.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+census_data22 <- read_csv(here("docs/education_level_healthboard.csv")) %>% 
+  clean_names %>% 
+  filter(health_board_area_2019 != "Total")
+
+data_antidepressants <- data_antidepressants %>% 
+  mutate(hb_name = gsub("^NHS ", "", hb_name)) # removes the NHS prefix in the antidepressant dataset, as the healthboard names don't include this in the census data
+
+education_antidepressants <- data_antidepressants %>% 
+  full_join(census_data22, by = c("hb_name" = "health_board_area_2019"))
+```
+
+Right now our dataset is still way too large, because we're looking at each individual drug prescription. Let's create a new, simple, dataset with just the antidepressant prescribing numbers for each healthboard.
+```{r}
+education_antidepressants %>% 
+  group_by(hb_name) %>% 
+  summarise()
 ```
 
 
+Because all we have right now are flat numbers, we need to show these in proportion to properly gauge the relative prescribing rate of antidepressants. Luckily, we have a total column from the census data that shows us the population of each healthboard, so we can create a new column with ratios of the prescription numbers to these populations.
+
+```{r}
+
+education_antidepressants %>% 
+  mutate(ratio = )
+
+```
+
+## Next Steps
+
+-   find data for all anxiety/depression drugs
+-   plot top 20 most frequently prescribed
+-   join demographic data
+-   look at correlations generally
+-   explore dosages?
+-   possibly look at outcome disparities - where would I get data for that
+-   could stratify with industry
 
 
+## References
 
-- find data for all anxiety/depression drugs
-- plot top 20 most frequently prescribed
-- join demographic data
-- look at correlations generally
-- explore dosages?
+1. Bergvall, S., Fernström, C., Ranehill, E., & Sandberg, A. (2025). The impact of PhD studies on mental health-a longitudinal population study. Journal of health economics, 104, 103070. Advance online publication. https://doi.org/10.1016/j.jhealeco.2025.103070 
+2. Maguire, A., Moriarty, J., O’Reilly, D. et al. (2017). Education as a predictor of antidepressant and anxiolytic medication use after bereavement: a population-based record linkage study. Qual Life Res 26, 1251–1262. https://doi.org/10.1007/s11136-016-1440-1
