@@ -67,15 +67,15 @@ data_antidepressants <- hb_names %>%
   select(!c(HBDateEnacted, HBDateArchived, Country)) %>% 
   clean_names()
 
-
-prescriptions_table <- data_antidepressants %>% 
+prescriptions_totals <- data_antidepressants %>% 
   group_by(hb_name) %>% 
-  summarise(totals = sum(paid_quantity)) %>% 
-  arrange(-totals) %>% 
-  gt()
-
-prescriptions_table # table showing total antidepressant prescriptions by healthboard
-
+  summarise(total_prescriptions = sum(paid_quantity)) %>% # grouping data so that we have total prescriptions
+  arrange(-total_prescriptions)
+  
+prescriptions_totals %>% 
+  ggplot(aes(hb_name, total_prescriptions)) +
+  geom_col() +
+  labs(x = "Healthboard", y = "Total antidepressant prescriptions", title = "Antidepressant prescriptions by healthboard")
 ```
 
 Using the flexible table builder on the Scottish census website, I have created a table with the numbers for highest level of education achieved by healthboard. We can join this with the data for antidepressants, using the healthboard names we just added.
@@ -85,23 +85,23 @@ census_data22 <- read_csv(here("docs/education_level_healthboard.csv")) %>%
   clean_names %>% 
   filter(health_board_area_2019 != "Total")
 
-data_antidepressants <- data_antidepressants %>% 
+prescriptions_totals <- prescriptions_totals %>% 
   mutate(hb_name = gsub("^NHS ", "", hb_name)) # removes the NHS prefix in the antidepressant dataset, as the healthboard names don't include this in the census data
 
-education_antidepressants <- data_antidepressants %>% 
+education_antidepressants <- prescriptions_totals %>% 
   full_join(census_data22, by = c("hb_name" = "health_board_area_2019"))
 ```
 
-Right now our dataset is still way too large, because we're looking at each individual drug prescription. Let's create a new, simple, dataset with just the antidepressant prescribing numbers for each healthboard.
-```{r}
-education_antidepressants %>% 
-  group_by(hb_name) %>% 
-  summarise()
-```
-
-
 Because all we have right now are flat numbers, we need to show these in proportion to properly gauge the relative prescribing rate of antidepressants. Luckily, we have a total column from the census data that shows us the population of each healthboard, so we can create a new column with ratios of the prescription numbers to these populations.
 
+```{r}
+education_antidepressants <- education_antidepressants %>% 
+  mutate(ratio = total_prescriptions / total)
+
+education_antidepressants %>% 
+  ggplot(aes(ratio, hb_name)) +
+  geom_col()
+```
 
 ## Next Steps
 
@@ -113,8 +113,7 @@ Because all we have right now are flat numbers, we need to show these in proport
 -   possibly look at outcome disparities - where would I get data for that
 -   could stratify with industry
 
-
 ## References
 
-1. Bergvall, S., Fernström, C., Ranehill, E., & Sandberg, A. (2025). The impact of PhD studies on mental health-a longitudinal population study. Journal of health economics, 104, 103070. Advance online publication. https://doi.org/10.1016/j.jhealeco.2025.103070 
-2. Maguire, A., Moriarty, J., O’Reilly, D. et al. (2017). Education as a predictor of antidepressant and anxiolytic medication use after bereavement: a population-based record linkage study. Qual Life Res 26, 1251–1262. https://doi.org/10.1007/s11136-016-1440-1
+1.  Bergvall, S., Fernström, C., Ranehill, E., & Sandberg, A. (2025). The impact of PhD studies on mental health-a longitudinal population study. Journal of health economics, 104, 103070. Advance online publication. <https://doi.org/10.1016/j.jhealeco.2025.103070>
+2.  Maguire, A., Moriarty, J., O’Reilly, D. et al. (2017). Education as a predictor of antidepressant and anxiolytic medication use after bereavement: a population-based record linkage study. Qual Life Res 26, 1251–1262. <https://doi.org/10.1007/s11136-016-1440-1>
