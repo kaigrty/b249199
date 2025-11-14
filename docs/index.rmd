@@ -2,8 +2,7 @@
 title: "Relationship between antidepressant prescriptions and education across Scotland"
 output:
   pdf_document: 
-    fig_width: 5
-    fig_height: 4
+    fig_height: 5
   html_document: default
 date: "2025-11-04"
 ---
@@ -64,7 +63,8 @@ education_antidepressants %>%
   geom_col(stat="identity") +
   coord_cartesian(xlim=c(30, 50)) + # zooms in on the disparities between boards
   labs(x = "Antidepressant prescriptions per capita", y = "Health board", title = "Total antidepressant prescriptions per capita, by Scottish Health Board", subtitle = "Prescription data from January to June 2025") +
-  scale_fill_steps(low = "#56B1F7", high = "#132B43")
+  scale_fill_steps(low = "#56B1F7", high = "#132B43", name = "Prescriptions per capita") +
+  theme(legend.title = element_text(size = 8), legend.text = element_text(size = 7), legend.key.size = unit(0.8, "lines"), plot.title = element_text(hjust = 0.5), axis.title.x = element_text(size = 9), axis.title.y = element_text(size = 9), axis.text.x = element_text(size = 8), axis.text.y  = element_text(size = 8))
   
 ```
 
@@ -74,7 +74,7 @@ In concordance with the aforementioned aim, I plan to explore whether the antide
 
 -   could explore dosages?
 -   possibly look at outcome disparities - where would I get data for that?
--   could stratify prescriptions with industry - is there an industry more prevalent in the higher healthboards?
+-   could stratify prescriptions with industry - is there an industry more prevalent in the higher-prescribing healthboards?
 
 ## References
 
