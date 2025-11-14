@@ -1,6 +1,10 @@
 ---
 title: "Relationship between antidepressant prescriptions and education across Scotland"
-output: html_document
+output:
+  pdf_document: 
+    fig_width: 5
+    fig_height: 4
+  html_document: default
 date: "2025-11-04"
 ---
 
@@ -12,9 +16,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
 The relationship between mental health and education level has been studied extensively, with a number of theories emerging on how the two interact. Correlative trends have been observed in PhD students, possibly owing to increased stress (1.). While other studies have shown a significantly reduced incidence of mental illness in educated individuals, hypothesising a protective effect (2.).
 
-This report aims to explore the relationship between antidepressant prescriptions and education level in specific healthboards across Scotland, using Public Health Scotland prescribing data from January to June 2025, and data from Scotland's census 2022.
+This report aims to explore the relationship between antidepressant prescriptions and education level in specific health boards across Scotland, using Public Health Scotland prescribing data from January to June 2025, and data from Scotland's census 2022.
 
-```{r echo=TRUE, message=FALSE, warning=FALSE}
+```{r message=FALSE, warning=FALSE, include=FALSE}
 library(tidyverse)
 library(janitor)
 library(gt)
@@ -25,41 +29,10 @@ data_jan_june25 <- read_csv("https://www.opendata.nhs.scot/dataset/84393984-14e9
   clean_names()
 ```
 
-First, we need to find all the antidepressants being prescribed in Scotland. This is made possible by the inclusion of BNF item codes in the Public Health Scotland dataset. By identifying the relevant codes for antidepressants we can filter the dataset down to just the drugs we want to look at.
-
-In order to identify the code for antidepressants, we can look at the BNF code information provided by the NHS Business Services Authority. Available at: <https://opendata.nhsbsa.net/dataset/bnf-code-information-current-year>
-
-```{r echo=TRUE, message=FALSE, warning=FALSE}
-BNF_info <- read_csv(here("docs/bnf_code_current_202506_version_88.csv"))
-
-# We filter the data to show just the antidepressants
-BNF_info_antidepressants <- BNF_info %>% 
-  filter(BNF_SECTION == "Antidepressant drugs")
-  
-unique(BNF_info_antidepressants$BNF_SECTION_CODE)
-```
-
-Now we can see the section code, 0403, and we could also get the codes for specific antidepressant drugs and even formulations or dosages if needed.
-
-Let's use this information to filter the original dataset, and we can look at the most commonly prescribed antidepressants too.
-
-```{r echo=TRUE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 data_antidepressants <- data_jan_june25 %>% 
-  filter(startsWith(bnf_item_code, "0403")) # show only the antidepressants prescribed
+  filter(startsWith(bnf_item_code, "0403"))
 
-data_antidepressants_table <- data_antidepressants %>% 
-  group_by(bnf_item_description) %>% 
-  summarise(total_quantity = sum(paid_quantity)) %>% 
-  arrange(-total_quantity) %>% 
-  head(n = 20) %>% 
-  gt()
-  
-data_antidepressants_table
-```
-
-Next, let's add some names for the healthboard to our table, and we can get a feel for which healthboard are at the top in antidepressant prescription numbers.
-
-```{r echo=TRUE, message=FALSE, warning=FALSE}
 hb_names <- read_csv("https://www.opendata.nhs.scot/dataset/9f942fdb-e59e-44f5-b534-d6e17229cc7b/resource/652ff726-e676-4a20-abda-435b98dd7bdc/download/hb14_hb19.csv")
 
 data_antidepressants <- hb_names %>% 
@@ -71,17 +44,8 @@ prescriptions_totals <- data_antidepressants %>%
   group_by(hb_name) %>% 
   summarise(total_prescriptions = sum(paid_quantity)) %>% # grouping data so that we have total prescriptions
   arrange(-total_prescriptions)
-  
-prescriptions_totals %>% 
-  ggplot(aes(hb_name, total_prescriptions)) +
-  geom_col() +
-  labs(x = "Healthboard", y = "Total antidepressant prescriptions", title = "Antidepressant prescriptions by healthboard")
-```
 
-Using the flexible table builder on the Scottish census website, I have created a table with the numbers for highest level of education achieved by healthboard. We can join this with the data for antidepressants, using the healthboard names we just added.
-
-```{r echo=TRUE, message=FALSE, warning=FALSE}
-census_data22 <- read_csv(here("docs/education_level_healthboard.csv")) %>% 
+census_data22 <- read_csv(here("data/education_level_healthboard.csv")) %>% 
   clean_names %>% 
   filter(health_board_area_2019 != "Total")
 
@@ -90,28 +54,27 @@ prescriptions_totals <- prescriptions_totals %>%
 
 education_antidepressants <- prescriptions_totals %>% 
   full_join(census_data22, by = c("hb_name" = "health_board_area_2019"))
-```
 
-Because all we have right now are flat numbers, we need to show these in proportion to properly gauge the relative prescribing rate of antidepressants. Luckily, we have a total column from the census data that shows us the population of each healthboard, so we can create a new column with ratios of the prescription numbers to these populations.
-
-```{r}
 education_antidepressants <- education_antidepressants %>% 
-  mutate(ratio = total_prescriptions / total)
+  mutate(ratio = total_prescriptions / total) # total prescriptions per capita
+  # mutate(total_prescriptions = total_prescriptions/10)
 
 education_antidepressants %>% 
-  ggplot(aes(ratio, hb_name)) +
-  geom_col()
+  ggplot(aes(ratio, reorder(hb_name, ratio), fill = ratio)) +
+  geom_col(stat="identity") +
+  coord_cartesian(xlim=c(30, 50)) + # zooms in on the disparities between boards
+  labs(x = "Antidepressant prescriptions per capita", y = "Health board", title = "Total antidepressant prescriptions per capita, by Scottish Health Board", subtitle = "Prescription data from January to June 2025") +
+  scale_fill_steps(low = "#56B1F7", high = "#132B43")
+  
 ```
 
 ## Next Steps
 
--   find data for all anxiety/depression drugs
--   plot top 20 most frequently prescribed
--   join demographic data
--   look at correlations generally
--   explore dosages?
--   possibly look at outcome disparities - where would I get data for that
--   could stratify with industry
+In concordance with the aforementioned aim, I plan to explore whether the antidepressant prescription rates have any correlation to the education level in each health board. The census data displays the proportions of the population of each healthboard by the highest level of qualification achieved, so I plan to gather the proportion of the population that achieved a degree level qualification or higher and plot this against the prescription rates shown. I believe choosing just the degree level qualification or higher will give more important insight, because the attainment of a qualification at that level is far removed from the next category (further education/sub degree qualifications), and I also believe there is great disparity in the propensities between higher education graduates, and everyone else. I think I'll display this new data with a line graph overlaid onto the pre-existing bar chart. Below are some notes of sporadic ideas I had while wrangling the data for the graph above, so just cursory.
+
+-   could explore dosages?
+-   possibly look at outcome disparities - where would I get data for that?
+-   could stratify prescriptions with industry - is there an industry more prevalent in the higher healthboards?
 
 ## References
 
