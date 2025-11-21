@@ -22,6 +22,7 @@ library(janitor)
 library(gt)
 library(here)
 library(dplyr)
+library(ggrepel)
 
 data_jan_june25 <- read_csv("https://www.opendata.nhs.scot/dataset/84393984-14e9-4b0d-a797-b288db64d088/resource/381166dd-3a07-4c12-93c3-6db7b12c042a/download/pitc202508.csv") %>% #August 2025 prescribing data by prescriber location 
   clean_names()
@@ -37,7 +38,7 @@ BNF_info <- read_csv(here("data/bnf_code_current_202506_version_88.csv"))
 # We filter the data to show just the antidepressants
 BNF_info_antidepressants <- BNF_info %>% 
   filter(BNF_SECTION == "Antidepressant drugs")
-  
+
 unique(BNF_info_antidepressants$BNF_SECTION_CODE)
 ```
 
@@ -100,20 +101,36 @@ Because all we have right now are flat numbers, we need to show these in proport
 
 ```{r}
 education_antidepressants <- education_antidepressants %>% 
-  mutate(ratio = total_prescriptions / total) # total prescriptions per capita
-  # mutate(total_prescriptions = total_prescriptions/10)
+  mutate(ratio = total_prescriptions / total, degree_pct = degree_level_qualifications_or_above_education_qualifications_not_already_mentioned_including_foreign_qualifications/total*100) # total prescriptions per capita and percentage of degree holders in each healthboard
 
 education_antidepressants %>% 
   ggplot(aes(ratio, reorder(hb_name, ratio), fill = ratio)) +
   geom_col(stat="identity") +
   coord_cartesian(xlim=c(2, 8)) + # zooms in on the disparities between boards
   labs(x = "Antidepressant prescriptions per capita", y = "Health board", title = "Total antidepressant prescriptions per capita, by Scottish Health Board", subtitle = "Prescription data from August 2025") +
-  scale_fill_steps(low = "#56B1F7", high = "#132B43")
-  # theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-  # facet_wrap(~hb_name, scales = "free_y")
+  scale_fill_steps(low = "#56B1F7", high = "#132B43") +
+  guides(fill = "none")
 ```
 
 The graph displayed shows the antidepressant prescriptions over from January to June 2025 in all 14 Scottish health boards, proportional to the population of each healthboard. Fife appears to have the highest prescribing rate when it comes to antidepressants, with Ayrshire and Arran following closely in second, while Shetland has the lowest rate of the lot. The total range of prescriptions per capita is noticeable, with a difference of almost 12.5 between the highest and lowest prescribing health boards.
+
+Now, we can display the antidepressant prescriptions alongside the education data. We'll do this by using the percentage of each healthboard's population that are degree holders we calculated earlier.
+
+```{r}
+ggplot(education_antidepressants, aes(x = degree_pct, y = ratio)) +
+  geom_point(size = 3) +
+  geom_smooth(method = "lm", se = TRUE) +
+  geom_text_repel(aes(label = hb_name), size = 3) +
+  labs(
+    x = "Degree-level qualifications (%)",
+    y = "Antidepressant prescriptions per capita",
+    title = "Association between education level and antidepressant prescribing by Scottish Health board",
+    subtitle = "Prescribing data from August 2025"
+  )
+
+```
+
+
 
 ## Next Steps
 
@@ -127,6 +144,7 @@ The graph displayed shows the antidepressant prescriptions over from January to 
 -   possibly look at outcome disparities - where would I get data for that
 -   could stratify with industry
 -   could find geometric dataset for healthboards in scotland, then colour code the prescriptions to population ratio
+-   gen ai acknowledgement
 
 ## References
 
