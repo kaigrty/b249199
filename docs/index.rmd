@@ -1,9 +1,8 @@
 ---
 title: "Relationship between antidepressant prescriptions and education across Scotland"
 output:
+  pdf_document: default
   html_document: default
-  pdf_document: 
-    fig_height: 5
 date: "2025-11-04"
 ---
 
@@ -15,23 +14,54 @@ knitr::opts_chunk$set(echo = TRUE)
 
 The relationship between mental health and education level has been studied extensively, with a number of theories emerging on how the two interact. Correlative trends have been observed in PhD students, possibly owing to increased stress (1.). While other studies have shown a significantly reduced incidence of mental illness in educated individuals, hypothesising a protective effect (2.).
 
-This report aims to explore the relationship between antidepressant prescriptions and education level in specific health boards across Scotland, using Public Health Scotland prescribing data from January to June 2025, and data from Scotland's census 2022.
+This report aims to explore the relationship between antidepressant prescriptions and education level in specific healthboards across Scotland, using Public Health Scotland prescribing data from and data from Scotland's most recent census in 2022. The prescribing data will be focused on August 2025, minimising any recording of repeat prescriptions following the NHS' prescribing recommendations, indicating an optimal 28-day repeat prescription duration (3, 4.).
 
-```{r message=FALSE, warning=FALSE, include=FALSE}
+```{r echo=TRUE, message=FALSE, warning=FALSE}
 library(tidyverse)
 library(janitor)
 library(gt)
 library(here)
 library(dplyr)
 
-data_jan_june25 <- read_csv("https://www.opendata.nhs.scot/dataset/84393984-14e9-4b0d-a797-b288db64d088/resource/9de908b3-9c28-4cc3-aa32-72350a0579d1/download/hb_pitc2025_01_06.csv") %>% 
+data_jan_june25 <- read_csv("https://www.opendata.nhs.scot/dataset/84393984-14e9-4b0d-a797-b288db64d088/resource/381166dd-3a07-4c12-93c3-6db7b12c042a/download/pitc202508.csv") %>% #August 2025 prescribing data by prescriber location 
   clean_names()
 ```
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-data_antidepressants <- data_jan_june25 %>% 
-  filter(startsWith(bnf_item_code, "0403"))
+First, we need to find all the antidepressants being prescribed in Scotland. This is made possible by the inclusion of BNF item codes in the Public Health Scotland prescribing data set. By identifying the relevant codes for antidepressants we can filter the data set down to just the drugs we want to look at.
 
+In order to identify the code for antidepressants, we can look at the BNF code information provided by the NHS Business Services Authority. Available at: <https://opendata.nhsbsa.net/dataset/bnf-code-information-current-year>
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+BNF_info <- read_csv(here("data/bnf_code_current_202506_version_88.csv"))
+
+# We filter the data to show just the antidepressants
+BNF_info_antidepressants <- BNF_info %>% 
+  filter(BNF_SECTION == "Antidepressant drugs")
+  
+unique(BNF_info_antidepressants$BNF_SECTION_CODE)
+```
+
+Now we can see the section code, 0403, and we could also get the codes for specific antidepressant drugs and even formulations or dosages if needed.
+
+Let's use this information to filter the original dataset, and we can look at the most commonly prescribed antidepressants too.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+data_antidepressants <- data_jan_june25 %>% 
+  filter(startsWith(bnf_item_code, "0403")) # show only the antidepressants prescribed
+
+data_antidepressants_table <- data_antidepressants %>% 
+  group_by(bnf_item_description) %>% 
+  summarise(total_quantity = sum(paid_quantity)) %>% 
+  arrange(-total_quantity) %>% 
+  head(n = 20) %>% 
+  gt()
+  
+data_antidepressants_table
+```
+
+Next, let's add some names for the healthboard to our table, and we can get a feel for which healthboard are at the top in antidepressant prescription numbers.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
 hb_names <- read_csv("https://www.opendata.nhs.scot/dataset/9f942fdb-e59e-44f5-b534-d6e17229cc7b/resource/652ff726-e676-4a20-abda-435b98dd7bdc/download/hb14_hb19.csv")
 
 data_antidepressants <- hb_names %>% 
@@ -43,7 +73,18 @@ prescriptions_totals <- data_antidepressants %>%
   group_by(hb_name) %>% 
   summarise(total_prescriptions = sum(paid_quantity)) %>% # grouping data so that we have total prescriptions
   arrange(-total_prescriptions)
+  
+prescriptions_totals %>% 
+  ggplot(aes(hb_name, total_prescriptions)) +
+  geom_col() +
+  labs(x = "Healthboard", y = "Total antidepressant prescriptions", title = "Antidepressant prescriptions by healthboard")
+```
 
+Using the flexible table builder on the Scottish census website, I have created a table with the numbers for highest level of education achieved by healthboard. We can join this with the data for antidepressants, using the healthboard names we just added.
+
+Data is available at: <https://www.scotlandscensus.gov.uk/search-the-census#/>
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
 census_data22 <- read_csv(here("data/education_level_healthboard.csv")) %>% 
   clean_names %>% 
   filter(health_board_area_2019 != "Total")
@@ -53,7 +94,11 @@ prescriptions_totals <- prescriptions_totals %>%
 
 education_antidepressants <- prescriptions_totals %>% 
   full_join(census_data22, by = c("hb_name" = "health_board_area_2019"))
+```
 
+Because all we have right now are flat numbers, we need to show these in proportion to properly gauge the relative prescribing rate of antidepressants. Luckily, we have a total column from the census data that shows us the population of each healthboard, so we can create a new column with the antidepressant prescriptions per capita.
+
+```{r}
 education_antidepressants <- education_antidepressants %>% 
   mutate(ratio = total_prescriptions / total) # total prescriptions per capita
   # mutate(total_prescriptions = total_prescriptions/10)
@@ -61,24 +106,31 @@ education_antidepressants <- education_antidepressants %>%
 education_antidepressants %>% 
   ggplot(aes(ratio, reorder(hb_name, ratio), fill = ratio)) +
   geom_col(stat="identity") +
-  coord_cartesian(xlim=c(30, 50)) + # zooms in on the disparities between boards
-  labs(x = "Antidepressant prescriptions per capita", y = "Health board", title = "Total antidepressant prescriptions per capita, by Scottish Health Board", subtitle = "Prescription data from January to June 2025") +
-  scale_fill_steps(low = "#56B1F7", high = "#132B43", name = "Prescriptions per capita") +
-  theme(legend.title = element_text(size = 8), legend.text = element_text(size = 7), legend.key.size = unit(0.8, "lines"), plot.title = element_text(hjust = 0.5), axis.title.x = element_text(size = 9), axis.title.y = element_text(size = 9), axis.text.x = element_text(size = 8), axis.text.y  = element_text(size = 8))
-  
+  coord_cartesian(xlim=c(2, 8)) + # zooms in on the disparities between boards
+  labs(x = "Antidepressant prescriptions per capita", y = "Health board", title = "Total antidepressant prescriptions per capita, by Scottish Health Board", subtitle = "Prescription data from August 2025") +
+  scale_fill_steps(low = "#56B1F7", high = "#132B43")
+  # theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+  # facet_wrap(~hb_name, scales = "free_y")
 ```
+
+The graph displayed shows the antidepressant prescriptions over from January to June 2025 in all 14 Scottish health boards, proportional to the population of each healthboard. Fife appears to have the highest prescribing rate when it comes to antidepressants, with Ayrshire and Arran following closely in second, while Shetland has the lowest rate of the lot. The total range of prescriptions per capita is noticeable, with a difference of almost 12.5 between the highest and lowest prescribing health boards.
 
 ## Next Steps
 
-The graph displayed shows the antidepressant prescriptions from January to June 2025 in all 14 Scottish health boards, proportional to the population of each healthboard. Fife appears to have the highest prescribing rate when it comes to antidepressants, with Ayrshire and Arran following closely in second, while Shetland has the lowest rate of the lot. The total range of prescriptions per capita is noticeable, with a difference of almost 12.5 between the highest and lowest prescribing health boards. 
-
-In concordance with the aforementioned aim, I plan to explore whether the antidepressant prescription rates have any correlation with the education level in each health board. The census data displays the proportions of the population of each healthboard by the highest level of qualification achieved, so I plan to gather the proportion that achieved a degree level qualification or higher and plot this against the prescription rates shown. I believe selecting just the numbers for degree level qualification or higher will allow for a more delineated relationship to appear, because the attainment of a qualification at that level is far removed from the next category (further education/sub degree qualifications), and I also believe there is a general disparity in the propensities between higher education graduates and everyone else. I intend display this new data with a line graph overlaid onto the pre-existing bar chart. Below are some notes of sporadic ideas I had while wrangling the data for the graph above, so just cursory.
-
--   could explore dosages?
--   possibly look at outcome disparities - where would I get data for that?
--   could stratify prescriptions with industry - is there an industry more prevalent in the higher-prescribing healthboards?
+-   table of contents with headings for each figure/visualisation
+-   can force a function somewhere maybe
+-   find data for all anxiety/depression drugs
+-   plot top 20 most frequently prescribed
+-   join demographic data
+-   look at correlations generally
+-   explore dosages?
+-   possibly look at outcome disparities - where would I get data for that
+-   could stratify with industry
+-   could find geometric dataset for healthboards in scotland, then colour code the prescriptions to population ratio
 
 ## References
 
 1.  Bergvall, S., Fernström, C., Ranehill, E., & Sandberg, A. (2025). The impact of PhD studies on mental health-a longitudinal population study. Journal of health economics, 104, 103070. Advance online publication. <https://doi.org/10.1016/j.jhealeco.2025.103070>
 2.  Maguire, A., Moriarty, J., O’Reilly, D. et al. (2017). Education as a predictor of antidepressant and anxiolytic medication use after bereavement: a population-based record linkage study. Qual Life Res 26, 1251–1262. <https://doi.org/10.1007/s11136-016-1440-1>
+3. NHS Business Services Authority. Electronic Repeat Dispensing Handbook. 2020. Available at: <https://www.nhsbsa.nhs.uk/sites/default/files/2020-07/Electronic%20Dispensing%20Handbook_Digital_WEB_S-1589995676.pdf> [Accessed 21 Nov 2025].
+4. Hertfordshire & West Essex Integrated Care Board. (n.d.) Prescription duration guidance. Available at: <https://www.hweclinicalguidance.nhs.uk/prescribing-guidance/prescription-duration-guidance-hwe-icb/> [Accessed 21 Nov 2025].
