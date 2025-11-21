@@ -1,8 +1,8 @@
 ---
 title: "Relationship between antidepressant prescriptions and education across Scotland"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 date: "2025-11-04"
 ---
 
@@ -74,16 +74,11 @@ prescriptions_totals <- data_antidepressants %>%
   group_by(hb_name) %>% 
   summarise(total_prescriptions = sum(paid_quantity)) %>% # grouping data so that we have total prescriptions
   arrange(-total_prescriptions)
-  
-prescriptions_totals %>% 
-  ggplot(aes(hb_name, total_prescriptions)) +
-  geom_col() +
-  labs(x = "Healthboard", y = "Total antidepressant prescriptions", title = "Antidepressant prescriptions by healthboard")
 ```
 
 Using the flexible table builder on the Scottish census website, I have created a table with the numbers for highest level of education achieved by healthboard. We can join this with the data for antidepressants, using the healthboard names we just added.
 
-Data is available at: <https://www.scotlandscensus.gov.uk/search-the-census#/>
+Resource is available at: <https://www.scotlandscensus.gov.uk/search-the-census#/>
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
 census_data22 <- read_csv(here("data/education_level_healthboard.csv")) %>% 
@@ -116,21 +111,19 @@ The graph displayed shows the antidepressant prescriptions over from January to 
 
 Now, we can display the antidepressant prescriptions alongside the education data. We'll do this by using the percentage of each healthboard's population that are degree holders we calculated earlier.
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 ggplot(education_antidepressants, aes(x = degree_pct, y = ratio)) +
   geom_point(size = 3) +
   geom_smooth(method = "lm", se = TRUE) +
   geom_text_repel(aes(label = hb_name), size = 3) +
   labs(
-    x = "Degree-level qualifications (%)",
+    x = "Degree holders (%)",
     y = "Antidepressant prescriptions per capita",
     title = "Association between education level and antidepressant prescribing by Scottish Health board",
     subtitle = "Prescribing data from August 2025"
   )
 
 ```
-
-
 
 ## Next Steps
 
@@ -150,5 +143,5 @@ ggplot(education_antidepressants, aes(x = degree_pct, y = ratio)) +
 
 1.  Bergvall, S., Fernström, C., Ranehill, E., & Sandberg, A. (2025). The impact of PhD studies on mental health-a longitudinal population study. Journal of health economics, 104, 103070. Advance online publication. <https://doi.org/10.1016/j.jhealeco.2025.103070>
 2.  Maguire, A., Moriarty, J., O’Reilly, D. et al. (2017). Education as a predictor of antidepressant and anxiolytic medication use after bereavement: a population-based record linkage study. Qual Life Res 26, 1251–1262. <https://doi.org/10.1007/s11136-016-1440-1>
-3. NHS Business Services Authority. Electronic Repeat Dispensing Handbook. 2020. Available at: <https://www.nhsbsa.nhs.uk/sites/default/files/2020-07/Electronic%20Dispensing%20Handbook_Digital_WEB_S-1589995676.pdf> [Accessed 21 Nov 2025].
-4. Hertfordshire & West Essex Integrated Care Board. (n.d.) Prescription duration guidance. Available at: <https://www.hweclinicalguidance.nhs.uk/prescribing-guidance/prescription-duration-guidance-hwe-icb/> [Accessed 21 Nov 2025].
+3.  NHS Business Services Authority. Electronic Repeat Dispensing Handbook. 2020. Available at: <https://www.nhsbsa.nhs.uk/sites/default/files/2020-07/Electronic%20Dispensing%20Handbook_Digital_WEB_S-1589995676.pdf> [Accessed 21 Nov 2025].
+4.  Hertfordshire & West Essex Integrated Care Board. (n.d.) Prescription duration guidance. Available at: <https://www.hweclinicalguidance.nhs.uk/prescribing-guidance/prescription-duration-guidance-hwe-icb/> [Accessed 21 Nov 2025].
