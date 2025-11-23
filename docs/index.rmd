@@ -60,7 +60,7 @@ data_antidepressants_table <- data_antidepressants %>%
 data_antidepressants_table
 ```
 
-Next, let's add some names for the healthboard to our table, and we can get a feel for which healthboard are at the top in antidepressant prescription numbers.
+Next, let's add some names for the healthboard to our table, to allow for a clearer visualisation down the line.
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
 hb_names <- read_csv("https://www.opendata.nhs.scot/dataset/9f942fdb-e59e-44f5-b534-d6e17229cc7b/resource/652ff726-e676-4a20-abda-435b98dd7bdc/download/hb14_hb19.csv")
@@ -92,7 +92,7 @@ education_antidepressants <- prescriptions_totals %>%
   full_join(census_data22, by = c("hb_name" = "health_board_area_2019"))
 ```
 
-Because all we have right now are flat numbers, we need to show these in proportion to properly gauge the relative prescribing rate of antidepressants. Luckily, we have a total column from the census data that shows us the population of each healthboard, so we can create a new column with the antidepressant prescriptions per capita.
+Because all we have right now are flat numbers, we need to show these as proportions of the population of each health board to properly gauge the relative prescribing rate of antidepressants. Luckily, we have a "total" column from the census data that shows us the population of each healthboard, so we can create a new column with the antidepressant prescriptions per capita.
 
 ```{r}
 education_antidepressants <- education_antidepressants %>% 
@@ -109,12 +109,17 @@ education_antidepressants %>%
 
 The graph displayed shows the antidepressant prescriptions over from January to June 2025 in all 14 Scottish health boards, proportional to the population of each healthboard. Fife appears to have the highest prescribing rate when it comes to antidepressants, with Ayrshire and Arran following closely in second, while Shetland has the lowest rate of the lot. The total range of prescriptions per capita is noticeable, with a difference of almost 12.5 between the highest and lowest prescribing health boards.
 
-Now, we can display the antidepressant prescriptions alongside the education data. We'll do this by using the percentage of each healthboard's population that are degree holders we calculated earlier.
+Now, we can explore the relationship between antidepressant prescriptions  the education data. We'll do this by using the percentage of each healthboard's population that are degree holders we calculated earlier.
 
 ```{r message=FALSE, warning=FALSE}
+model <- lm(ratio ~ degree_pct, data = education_antidepressants)
+
+education_antidepressants <- education_antidepressants %>% 
+  mutate(model = predict(model))
+
 ggplot(education_antidepressants, aes(x = degree_pct, y = ratio)) +
   geom_point(size = 3) +
-  geom_smooth(method = "lm", se = TRUE) +
+  geom_smooth(aes(y = model), color = "blue", linewidth = 1.2) +
   geom_text_repel(aes(label = hb_name), size = 3) +
   labs(
     x = "Degree holders (%)",
@@ -122,7 +127,6 @@ ggplot(education_antidepressants, aes(x = degree_pct, y = ratio)) +
     title = "Association between education level and antidepressant prescribing by Scottish Health board",
     subtitle = "Prescribing data from August 2025"
   )
-
 ```
 
 ## Next Steps
@@ -130,9 +134,6 @@ ggplot(education_antidepressants, aes(x = degree_pct, y = ratio)) +
 -   table of contents with headings for each figure/visualisation
 -   can force a function somewhere maybe
 -   find data for all anxiety/depression drugs
--   plot top 20 most frequently prescribed
--   join demographic data
--   look at correlations generally
 -   explore dosages?
 -   possibly look at outcome disparities - where would I get data for that
 -   could stratify with industry
