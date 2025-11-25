@@ -14,18 +14,34 @@ knitr::opts_chunk$set(echo = TRUE)
 
 The relationship between mental health and education level has been studied extensively, with a number of theories emerging on how the two interact. Correlative trends have been observed in PhD students, possibly owing to increased stress (1.). While other studies have shown a significantly reduced incidence of mental illness in educated individuals, hypothesising a protective effect (2.).
 
-This report aims to explore the relationship between antidepressant prescriptions and education level in specific healthboards across Scotland, using Public Health Scotland prescribing data from and data from Scotland's most recent census in 2022. The prescribing data will be focused on August 2025, minimising any recording of repeat prescriptions following the NHS' prescribing recommendations, indicating an optimal 28-day repeat prescription duration (3, 4.).
+This report aims to explore the relationship between antidepressant prescriptions and education level across Scotland, using Public Health Scotland prescribing data, and data from Scotland's most recent census in 2022. The prescribing data will be taken from January to August 2025 and a monthly average calculated, minimising any recording of repeat prescriptions following the NHS' prescribing recommendations indicating an optimal 28-day repeat prescription duration (3, 4.).
+
+Prescribing data can be found here: <https://www.opendata.nhs.scot/dataset/prescriptions-in-the-community>
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
 library(tidyverse)
+library(stringr)
 library(janitor)
-library(gt)
 library(here)
-library(dplyr)
 library(ggrepel)
+library(readr)
+library(gt)
 
-data_jan_june25 <- read_csv("https://www.opendata.nhs.scot/dataset/84393984-14e9-4b0d-a797-b288db64d088/resource/381166dd-3a07-4c12-93c3-6db7b12c042a/download/pitc202508.csv") %>% #August 2025 prescribing data by prescriber location 
-  clean_names()
+urls <- c(
+  "https://www.opendata.nhs.scot/dataset/84393984-14e9-4b0d-a797-b288db64d088/resource/381166dd-3a07-4c12-93c3-6db7b12c042a/download/pitc202508.csv",
+  "https://www.opendata.nhs.scot/dataset/84393984-14e9-4b0d-a797-b288db64d088/resource/12448904-f11c-4a0f-8dab-8b47c5abebf8/download/pitc202507.csv",
+  "https://www.opendata.nhs.scot/dataset/84393984-14e9-4b0d-a797-b288db64d088/resource/0f2931af-3d08-4a6b-92cf-b61be4ce8d97/download/pitc202506.csv",
+  "https://www.opendata.nhs.scot/dataset/84393984-14e9-4b0d-a797-b288db64d088/resource/a4410a3c-0e75-4b7f-927a-4d7af6436934/download/pitc202505.csv",
+  "https://www.opendata.nhs.scot/dataset/84393984-14e9-4b0d-a797-b288db64d088/resource/a36a1902-da40-4063-a103-ee3934b7623e/download/pitc202504.csv",
+  "https://www.opendata.nhs.scot/dataset/84393984-14e9-4b0d-a797-b288db64d088/resource/9849b4dd-b130-4a81-96a7-5bd00db5e2a9/download/pitc202503.csv",
+  "https://www.opendata.nhs.scot/dataset/84393984-14e9-4b0d-a797-b288db64d088/resource/54ec3c6d-f4c5-4653-be4f-741b634c18cf/download/pitc202502.csv",
+  "https://www.opendata.nhs.scot/dataset/84393984-14e9-4b0d-a797-b288db64d088/resource/cdd756fa-566e-4c91-b489-bcb0721e7c21/download/pitc202501.csv"
+) # 8 months of prescribing data in 2025
+
+months <- seq(as.Date("2025-01-01"), as.Date("2025-08-01"), by = "month")
+
+all_prescribing <- map2_df(urls, months, ~ read_csv(.x, col_types = cols(DMDCode = col_character(), .default = col_guess()), show_col_types = FALSE) %>%
+    mutate(month = .y))
 ```
 
 First, we need to find all the antidepressants being prescribed in Scotland. This is made possible by the inclusion of BNF item codes in the Public Health Scotland prescribing data set. By identifying the relevant codes for antidepressants we can filter the data set down to just the drugs we want to look at.
@@ -44,64 +60,63 @@ unique(BNF_info_antidepressants$BNF_SECTION_CODE)
 
 Now we can see the section code, 0403, and we could also get the codes for specific antidepressant drugs and even formulations or dosages if needed.
 
-Let's use this information to filter the original dataset, and we can look at the most commonly prescribed antidepressants too.
+Let's use this information to filter the original dataset, and we'll calculate the average monthly prescribing numbers to set us up for exploring the research question.
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
-data_antidepressants <- data_jan_june25 %>% 
-  filter(startsWith(bnf_item_code, "0403")) # show only the antidepressants prescribed
 
-data_antidepressants_table <- data_antidepressants %>% 
-  group_by(bnf_item_description) %>% 
-  summarise(total_quantity = sum(paid_quantity)) %>% 
-  arrange(-total_quantity) %>% 
-  head(n = 20) %>% 
-  gt()
-  
-data_antidepressants_table
+antidepressants <- all_prescribing %>% 
+  filter(str_starts(BNFItemCode, "0403"), HBT != "SB0806") # remove special health board as we filter for antidepressants
+
+hb_month <- antidepressants %>% 
+  group_by(HBT, month) %>% 
+  summarise(total_items = sum(NumberOfPaidItems, na.rm = TRUE), .groups = "drop")
+
+hb_avg <- hb_month %>% 
+  group_by(HBT) %>% 
+  summarise(mean_items = mean(total_items, na.rm = TRUE), .groups = "drop")
 ```
 
-Next, let's add some names for the healthboard to our table, to allow for clearer visualisation down the line.
+Next, let's add some names for the healthboard to our table, to allow for clearer visualisation down the line, and we can have a look at 
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
 hb_names <- read_csv("https://www.opendata.nhs.scot/dataset/9f942fdb-e59e-44f5-b534-d6e17229cc7b/resource/652ff726-e676-4a20-abda-435b98dd7bdc/download/hb14_hb19.csv")
 
 data_antidepressants <- hb_names %>% 
-  inner_join(data_antidepressants, by = c("HB" = "hbt")) %>% 
-  select(!c(HBDateEnacted, HBDateArchived, Country)) %>% 
-  clean_names()
-
-prescriptions_totals <- data_antidepressants %>% 
-  group_by(hb_name) %>% 
-  summarise(total_prescriptions = sum(paid_quantity)) %>% # grouping data so that we have total prescriptions
-  arrange(-total_prescriptions)
+  inner_join(hb_avg, by = c("HB" = "HBT")) %>% 
+  clean_names() %>% 
+  select(!c(hb_date_enacted, hb_date_archived, country)) %>% 
+  mutate(hb_name = gsub("^NHS ", "", hb_name)) # removes NHS prefix for each health board to match the naming conventions in the census data
 ```
 
-Using the flexible table builder on the Scottish census website, I have created a table with the numbers for highest level of education achieved by healthboard. We can join this with the data for antidepressants, using the healthboard names we just added.
+Using the flexible table builder on the Scottish census website, I have created a table with the numbers for the highest level of education (columns) achieved by healthboard (rows). We can join this with the data for antidepressants, using the healthboard names we just added.
 
 Resource is available at: <https://www.scotlandscensus.gov.uk/search-the-census#/>
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
-census_data22 <- read_csv(here("data/education_level_healthboard.csv")) %>% 
-  clean_names %>% 
-  filter(health_board_area_2019 != "Total")
+read_lines(here("data/education_level_healthboard.csv"), n_max = 20)
 
-prescriptions_totals <- prescriptions_totals %>% 
-  mutate(hb_name = gsub("^NHS ", "", hb_name)) # removes the NHS prefix in the antidepressant dataset, as the healthboard names don't include this in the census data
+census_data22 <- read_csv(here("data/education_level_healthboard.csv"), skip = 9, col_names = TRUE) %>%
+  slice(-1) %>% # removing misformatted row
+  remove_empty("cols") %>% 
+  rename(hb = "Highest level of qualification") %>% 
+  slice_head(n = -4) %>%  # remove irrelevant rows/total row
+  clean_names() %>% 
+  select(c(hb, degree_level_qualifications_or_above_education_qualifications_not_already_mentioned_including_foreign_qualifications, total)) # selecting only the columns we need to answer the question; we only need the last columns for education level since we're looking at the percentage of degree holders in each health board
 
-education_antidepressants <- prescriptions_totals %>% 
-  full_join(census_data22, by = c("hb_name" = "health_board_area_2019"))
+education_antidepressants <- data_antidepressants %>% 
+  full_join(census_data22, by = c("hb_name" = "hb"))
 ```
 
 Because all we have right now are flat numbers, we need to show these in proportion to properly gauge the relative prescribing rate of antidepressants. Luckily, we have a total column from the census data that shows us the population of each healthboard, so we can create a new column with the antidepressant prescriptions per capita.
 
 ```{r}
 education_antidepressants <- education_antidepressants %>% 
-  mutate(ratio = total_prescriptions / total, degree_pct = degree_level_qualifications_or_above_education_qualifications_not_already_mentioned_including_foreign_qualifications/total*100) # total prescriptions per capita and percentage of degree holders in each healthboard
+  mutate(ratio = mean_items / total, degree_pct = degree_level_qualifications_or_above_education_qualifications_not_already_mentioned_including_foreign_qualifications/total*100) # total prescriptions per capita and percentage of degree holders in each healthboard
 
 education_antidepressants %>% 
   ggplot(aes(ratio, reorder(hb_name, ratio), fill = ratio)) +
   geom_col(stat="identity") +
-  coord_cartesian(xlim=c(2, 8)) + # zooms in on the disparities between boards
+  coord_cartesian(xlim=c(0.05, 0.2)) + # zoom in on the disparities between boards
   labs(x = "Antidepressant prescriptions per capita", y = "Health board", title = "Total antidepressant prescriptions per capita, by Scottish Health Board", subtitle = "Prescription data from August 2025") +
   scale_fill_steps(low = "#56B1F7", high = "#132B43") +
   guides(fill = "none")
@@ -128,20 +143,73 @@ ggplot(education_antidepressants, aes(x = degree_pct, y = ratio)) +
     subtitle = "Prescribing data from August 2025"
   )
 ```
+# Part 2: Analysing the relationship by data zone
+
 
 
 ```{r}
+## load in practice details
+practice_info <- read_csv(here("data/practice_contactdetails.csv")) %>% clean_names()
 
+antidepressants_practice <- antidepressants %>%
+  inner_join(practice_info, by = c("GPPractice" = "practice_code")) %>% 
+  select(c(GPPractice, NumberOfPaidItems, month, data_zone))
+
+dz_month <- antidepressants_practice %>% 
+  group_by(data_zone, month) %>% 
+  summarise(total_items = sum(NumberOfPaidItems, na.rm = TRUE), .groups = "drop")
+
+dz_avg <- dz_month %>% 
+  group_by(data_zone) %>% 
+  summarise(mean_items = mean(total_items, na.rm = TRUE), .groups = "drop")
 ```
 
+```{r}
+## load in census data by data zone instead of health board
+read_lines(here("data/census_education_dz.csv"), n_max = 20)
+census_dz <- read_csv(here("data/census_education_dz.csv"), skip = 9, col_names = TRUE) %>%
+  slice(-1) %>% # removing misformatted row
+  remove_empty("cols") %>% 
+  rename(data_zone = "Highest level of qualification") %>% 
+  filter(str_detect(data_zone, "^S\\d{8}$")) %>% # remove irrelevant rows/data zones not complicit with desired pattern
+  clean_names()
+
+antidepressants_education_dz <- inner_join(dz_avg, census_dz, by = c("data_zone" = "data_zone"))
+```
+
+```{r}
+antidepressants_education_dz <- antidepressants_education_dz %>% 
+  mutate(apc = mean_items/total, # antidepressants per capita
+         degree_pct = (degree_level_qualifications_or_above_education_qualifications_not_already_mentioned_including_foreign_qualifications/total)*100) # degree holder percentage for each data zone
+
+model <- lm(apc ~ degree_pct, data = antidepressants_education_dz)
+
+antidepressants_education_dz <- antidepressants_education_dz %>% 
+  mutate(model = predict(model))
+
+ggplot(antidepressants_education_dz, aes(x = degree_pct, y = apc)) +
+  geom_point(size = 3) +
+  geom_smooth(aes(y = model), color = "blue", linewidth = 1.2) +
+  labs(
+    x = "Degree holders (%)",
+    y = "Antidepressant prescriptions per capita",
+    title = "Association between education level and antidepressant prescribing by Scottish Data Zone",
+    subtitle = "Prescribing data from January to August 2025"
+  )
+```
 
 ## Next Steps
 
 -   table of contents with headings for each figure/visualisation
 -   explore dosages?
--   possibly look at outcome disparities - where would I get data for that
--   could stratify with industry
 -   could find geometric dataset for healthboards in scotland, then colour code the prescriptions to population ratio
+-   warning in census data read (line 100)
+-   chunk titles
+-   table of contents with navigation, headings to split the report up a bit(may need to revise flow somewhat)
+-   gt table somewhere maybe
+-   look over joins
+-   do i have to remove outlier in final graph?
+-   do i have to set a seed for linear regression?
 -   gen ai acknowledgement
 
 ## References
