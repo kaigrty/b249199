@@ -134,7 +134,7 @@ education_antidepressants <- education_antidepressants %>%
 
 ggplot(education_antidepressants, aes(x = degree_pct, y = ratio)) +
   geom_point(size = 3) +
-  geom_smooth(aes(y = model), color = "blue", linewidth = 1.2) +
+  geom_smooth(aes(y = model), color = "blue", se = TRUE) +
   geom_text_repel(aes(label = hb_name), size = 3) +
   labs(
     x = "Degree holders (%)",
@@ -144,7 +144,6 @@ ggplot(education_antidepressants, aes(x = degree_pct, y = ratio)) +
   )
 ```
 # Part 2: Analysing the relationship by data zone
-
 
 
 ```{r}
