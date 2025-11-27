@@ -20,7 +20,7 @@ The relationship between mental health and education level has been studied exte
 
 This report aims to explore the relationship between antidepressant prescriptions and education level across Scotland, using Public Health Scotland prescribing data, and data from Scotland's most recent census in 2022. The prescribing data will be taken from January to August 2025 and a monthly average calculated, minimising any recording of repeat prescriptions following the NHS' prescribing recommendations indicating an optimal 28-day repeat prescription duration (3, 4.).
 
-## Part 1: Exploring the relationship
+# Part 1: Exploring the prescribing rates
 
 Prescribing data can be found here: <https://www.opendata.nhs.scot/dataset/prescriptions-in-the-community>
 
@@ -34,6 +34,8 @@ library(readr)
 library(dplyr)
 library(gt)
 library(plotly)
+library(forcats)
+library(scales)
 
 files <- list.files(here("data","consecutive_data"), pattern = "csv", full.names = TRUE) # 8 months of prescribing data through 2025
 months <- seq(as.Date("2025-01-01"), as.Date("2025-08-01"), by = "month")
@@ -67,7 +69,7 @@ antidepressants_avg <- antidepressants %>%
   summarise(mean_items = mean(total_items, na.rm = TRUE), .groups = "drop") # prescription averages for each health board across the 8 months
 ```
 
-Next, let's add some names for the healthboard to our table, to allow for clearer visualisation down the line, and we can get an idea of the range of total prescriptions across Scotland. Using the flexible table builder on the Scottish census website, I have created a table with the numbers for the highest level of education (columns) achieved by healthboard (rows). We can also join this with the data for antidepressants, using the healthboard names.
+Next, let's add some names for the health boards to our data to allow for clearer visualisation down the line, and we can get an idea of the range of total prescriptions across Scotland. Using the flexible table builder on the Scottish census website, I have created a table with the numbers for the highest level of education (columns) achieved by healthboard (rows). We can also join this with the data for antidepressants, using the healthboard names.
 
 Health board names available at: <https://www.opendata.nhs.scot/dataset/geography-codes-and-labels/resource/652ff726-e676-4a20-abda-435b98dd7bdc>
 Census table builder is available at: <https://www.scotlandscensus.gov.uk/search-the-census#/> 
@@ -90,21 +92,29 @@ census_data22 <- read_csv(
   I(info), # feed character vector as a connection
   col_names = TRUE, show_col_types = FALSE) %>%
   clean_names() %>%
-  rename(hb = highest_level_of_qualification) %>%
-  select(hb, degree_level_qualifications_or_above_education_qualifications_not_already_mentioned_including_foreign_qualifications,total) # select only the columns we need to answer the question; we only need the last columns for education level since we're looking at the percentage of degree holders in each health board
+  rename(hb = highest_level_of_qualification,
+         NA_or_under_16 = not_applicable_aged_less_than_16,
+         none = no_qualifications,
+         lower_school = lower_school_qualifications,
+         upper_school = upper_school_qualifications,
+         further_education_sub_degree = further_education_and_sub_degree_higher_education_qualifications_incl_hnc_hn_ds,
+         degree = degree_level_qualifications_or_above_education_qualifications_not_already_mentioned_including_foreign_qualifications,
+         apprenticeship = apprenticeship_qualifications) %>% 
+  remove_empty("cols") 
   
 education_antidepressants <- data_antidepressants %>% 
   full_join(census_data22, by = c("hb_name" = "hb"))
+
+# We need to show our flat numbers as proportions to properly gauge the relative prescribing rate of antidepressants. Luckily, we have a "total" column from the census data that shows us the population of each healthboard, so we can create a new column with the antidepressant prescriptions per capita from it
+education_antidepressants <- education_antidepressants %>% 
+  mutate(apc = mean_items / total, degree_pct = degree/total*100) # total prescriptions per capita and percentage of degree holders in each healthboard
 ```
 
-Because all we have right now are flat numbers, we need to show these as proportions to properly gauge the relative prescribing rate of antidepressants. Luckily, we have a "total" column from the census data that shows us the population of each healthboard, so we can create a new column with the antidepressant prescriptions per capita from it.
+## Prescribing rates
 
-Once we've done that, we can investigate the prescribing rates of the health boards.
+Now we have all the data ready to investigate the prescribing rates of the health boards.
 
 ```{r message=FALSE, warning=FALSE}
-education_antidepressants <- education_antidepressants %>% 
-  mutate(apc = mean_items / total, degree_pct = degree_level_qualifications_or_above_education_qualifications_not_already_mentioned_including_foreign_qualifications/total*100) # total prescriptions per capita and percentage of degree holders in each healthboard
-
 education_antidepressants %>% 
   select(hb_name, mean_items, total, apc) %>% 
   arrange(desc(apc)) %>% 
@@ -166,12 +176,89 @@ education_antidepressants %>%
 
 #### Results
 
-This graph shows the average monthly antidepressant prescriptions per capita from January to August 2025 in all 14 Scottish health boards. Dumfries and Galloway is shown to have the highest prescribing rate, with a relatively noticeable gap between it and Ayrshire and Arran following in second, while Lothian has the lowest rate of the lot. The total range of prescriptions per capita is noticeable, with the lowest at 0.104 and the highest at 0.17, a near 70% increase. This indicates meaningful geographical variation in antidepressant prescribing across Scotland, with many factors possibly contributing to the inequalities, such as: local policy, socioeconomic disparities, and baseline characteristic differences.
+The table shows the average monthly antidepressant prescriptions per capita from January to August 2025 in all 14 Scottish health boards. Dumfries and Galloway is the clear leader in prescribing rate, with a relatively noticeable gap between it and Ayrshire and Arran following in second, while Lothian has the lowest rate of the lot, but not too far removed from the other boards towards the bottom like Grampian, Orkney and Highland. The total range of prescriptions per capita is noticeable, with the lowest at 0.1 and the highest at 0.17, it's almost a 70% increase. This indicates meaningful geographical variation in antidepressant prescribing across Scotland, with many factors possibly contributing to the inequalities, such as: local policy, socioeconomic disparities, and baseline population characteristic differences.
 
-Now, we can explore the relationship between these antidepressant prescription rates and the education data. We'll do this by using the percentage of each health board's population that are degree holders as calculated earlier, and running a linear regression to determine the correlation between the two variables.
+## Education levels 
+
+Now, using the same census data, we should have a look at the education levels of each health board relative to each other, so we can get an idea of the landscape of this variable.
+
+```{r}
+education_data <- education_antidepressants %>% 
+  pivot_longer(
+    c(NA_or_under_16:degree),
+    names_to  = "edu_lvl",
+    values_to = "edu_lvl_count"
+  ) %>% 
+  mutate(
+    edu_lvl_pct = edu_lvl_count / total, edu_lvl = factor(edu_lvl, levels = rev(c( # reverse order of census progression for better visualisation
+        "NA_or_under_16",
+        "none",
+        "lower_school",
+        "upper_school",
+        "apprenticeship",
+        "further_education_sub_degree",
+        "degree"
+      ))
+    ),
+    edu_lvl = fct_recode( # plotly doesn't adopt legend labels set in ggplot so have to label the levels properly here
+      edu_lvl,
+      "Under 16 / N.A."                = "NA_or_under_16",
+      "No qualifications"              = "none",
+      "Lower school"                   = "lower_school",
+      "Upper school"                   = "upper_school",
+      "Apprenticeship"                 = "apprenticeship",
+      "Further education (sub-degree)" = "further_education_sub_degree",
+      "Degree or above"                = "degree"
+    )
+  )
+
+graph1 <- education_data %>% 
+  ggplot(aes(
+    x    = edu_lvl_pct,
+    y    = reorder(hb_name, degree_pct), 
+    fill = edu_lvl,
+    text = paste(
+      "Education level:", edu_lvl,
+      "<br>Percentage:", percent(edu_lvl_pct, accuracy = 0.1)
+    )
+  )) +
+  geom_col(colour = "grey20", linewidth = 0.2) +
+  scale_x_continuous(labels = percent_format(accuracy = 1)) +
+  scale_fill_manual(
+    name   = "Highest level of qualification",
+    values = c(
+      "Under 16 / N.A."                = "#f2e5ff",
+      "No qualifications"              = "#d8b7ff",
+      "Lower school"                   = "#be89ff",
+      "Upper school"                   = "#a35cff",
+      "Apprenticeship"                 = "#8930ff",
+      "Further education (sub-degree)" = "#7013e6",
+      "Degree or above"                = "#4d0099"
+    )
+  ) +
+  labs(
+    x = "Percentage of health board population",
+    y = "Health board",
+    title = "Education level distribution by Scottish health board",
+  ) +
+  theme(legend.position = "right",
+      legend.title = element_text(size = 9),
+      legend.text  = element_text(size = 8))
+ggplotly(graph1, tooltip = "text")
+```
+
+#### Results
+...
+
+
+
+
+
+
+We'll do this by using the percentage of each health board's population that are degree holders as calculated earlier, and running a linear regression to determine the correlation between the two variables.
 
 ```{r message=FALSE, warning=FALSE}
-graph1 <- ggplot(education_antidepressants, aes(x = degree_pct, y = apc, fill = hb_name)) +
+graph2 <- ggplot(education_antidepressants, aes(x = degree_pct, y = apc, fill = hb_name)) +
   geom_point(size = 3) +
   geom_smooth(method = "lm", se = TRUE) +
   labs(
@@ -180,7 +267,7 @@ graph1 <- ggplot(education_antidepressants, aes(x = degree_pct, y = apc, fill = 
     title = "Association between education level and antidepressant prescribing by Scottish Health board",
     subtitle = "Prescribing data from January to August 2025"
   )
-ggplotly(graph1)
+ggplotly(graph2)
 
 plot_ly(education_antidepressants,
         x = ~degree_pct,
@@ -220,7 +307,7 @@ However, the standard error is of moderate size, and the majority of the health 
 
 It is clear there is variation in the variables, and possibly a relationship between them, but the geographical stratification is too large at the level of health boards. To try and get a clearer image of the relationship, let's do the same analysis, but with Scottish data zones, focusing in on much smaller localities.
 
-## Part 2: Focusing in
+# Part 2: Focusing in
 
 The original prescribing data already had GP practice codes, so we can map the prescriptions to data zones using a practice lookup data set from Public Health Scotland. After that we'll do the same as we did to the prescribing data before, finding the total prescriptions per month and then averaging, just this time by data zone instead of health board, and then adding on the census data for education, again using the flexible table builder with data zones instead of health boards.
 
@@ -258,7 +345,7 @@ antidepressants_education_dz <- antidepressants_education_dz %>%
   mutate(apc = mean_items/total, # antidepressants per capita
          degree_pct = (degree_level_qualifications_or_above_education_qualifications_not_already_mentioned_including_foreign_qualifications/total)*100) # degree holder percentage for each data zone
 
-graph2 <- ggplot(antidepressants_education_dz, aes(x = degree_pct, y = apc)) +
+graph3 <- ggplot(antidepressants_education_dz, aes(x = degree_pct, y = apc)) +
   geom_point(size = 3) +
   geom_smooth(method = "lm", se = TRUE) +
   labs(
@@ -267,7 +354,7 @@ graph2 <- ggplot(antidepressants_education_dz, aes(x = degree_pct, y = apc)) +
     title = "Association between education level and antidepressant prescribing by Scottish Data Zone",
     subtitle = "Prescribing data from January to August 2025"
   )
-ggplotly(graph2, tooltip = c("x", "y"))
+ggplotly(graph3, tooltip = c("x", "y"))
 ```
 
 This graph communicates a similar relationship as the data on health boards: that a higher educational attainment is negatively correlated with antidepressant prescribing. Again though, the data doesn't confidently support the suggestion, with only a weakly negative slope. Most of the data zones are distributed around 0-3 antidepressants per capita, with a select few outliers near 10 and even one above 15. These few data zones with abnormally high prescribing rates are on the lower end in educational attainment, but this doesn't reflect a cut and dry, certain relationship.
