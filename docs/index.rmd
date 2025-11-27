@@ -53,7 +53,6 @@ In order to identify the code for antidepressants, we can look at the BNF code i
 
 BNF information is available at: <https://opendata.nhsbsa.net/dataset/bnf-code-information-current-year>
 
-<<<<<<< HEAD
 ```{r message=FALSE, warning=FALSE}
 BNF_info <- read_csv(here("data/bnf_code_current_202506_version_88.csv")) %>% 
   filter(BNF_SECTION == "Antidepressant drugs")  # filter the data to show just the antidepressants
@@ -178,7 +177,7 @@ education_antidepressants %>%
 
 The table shows the average monthly antidepressant prescriptions per capita from January to August 2025 in all 14 Scottish health boards. Dumfries and Galloway is the clear leader in prescribing rate, with a relatively noticeable gap between it and Ayrshire and Arran following in second, while Lothian has the lowest rate of the lot, but not too far removed from the other boards towards the bottom like Grampian, Orkney and Highland. The total range of prescriptions per capita is noticeable, with the lowest at 0.1 and the highest at 0.17, it's almost a 70% increase. This indicates meaningful geographical variation in antidepressant prescribing across Scotland, with many factors possibly contributing to the inequalities, such as: local policy, socioeconomic disparities, and baseline population characteristic differences.
 
-## Education levels 
+# Part 2: Exploring education levels 
 
 Now, using the same census data, we should have a look at the education levels of each health board relative to each other, so we can get an idea of the landscape of this variable.
 
@@ -253,61 +252,94 @@ ggplotly(graph1, tooltip = "text")
 
 
 
+# Part 3: Investigating the relationship
 
-
-We'll do this by using the percentage of each health board's population that are degree holders as calculated earlier, and running a linear regression to determine the correlation between the two variables.
+We're now ready to look into the relationship between antidepressant prescriptions and education level. We'll do this by using the percentage of each health board's population that are degree holders as calculated earlier, and running a linear regression to determine the correlation between the two variables.
 
 ```{r message=FALSE, warning=FALSE}
-graph2 <- ggplot(education_antidepressants, aes(x = degree_pct, y = apc, fill = hb_name)) +
-  geom_point(size = 3) +
-  geom_smooth(method = "lm", se = TRUE) +
-  labs(
-    x = "Degree holders (%)",
-    y = "Antidepressant prescriptions per capita",
-    title = "Association between education level and antidepressant prescribing by Scottish Health board",
-    subtitle = "Prescribing data from January to August 2025"
-  )
-ggplotly(graph2)
+library(tidymodels)
 
-plot_ly(education_antidepressants,
-        x = ~degree_pct,
-        y = ~apc,
-        color = ~hb_name,
-        type = "scatter",
-        mode = "markers") %>%
-  add_lines(y = fitted(lm(apc ~ degree_pct, data = education_antidepressants)))
- #geom_text_repel(aes(label = hb_name), size = 3) +
+lm_model <- linear_reg() %>% 
+  set_engine('lm') %>% 
+  set_mode("regression") %>% 
+  fit(apc ~ degree_pct, data = education_antidepressants)
+new_data <- tibble(degree_pct = seq(min(education_antidepressants$degree_pct),
+                   max(education_antidepressants$degree_pct),
+                   length.out = 100))
 
+pred_data <- predict(lm_model, new_data = new_data) %>% 
+  bind_cols(new_data)
 
-education_antidepressants <- education_antidepressants %>% 
-  mutate(pred = fitted(lm(apc ~ degree_pct, data = .))) %>% 
-  arrange(degree_pct)
+lm_fit <- lm(apc ~ degree_pct, data = education_antidepressants)
 
-plot_ly(
+ci_pred <- as_tibble(predict(lm_fit, newdata = new_data, interval = "confidence")) %>%
+  bind_cols(new_data)
+
+graph2 <- plot_ly(
   education_antidepressants,
   x = ~degree_pct,
   y = ~apc,
   type = "scatter",
   mode = "markers",
-  color = ~hb_name
-) %>%
-  add_lines(
+  marker = list(
+    color   = "#061A61",
+    size    = 15,
+    opacity = 0.8
+  ),
+  alpha = 0.65,
+  name = "Health boards",
+  text = ~hb_name,
+  hoverinfo = "text+x+y"
+  ) %>%
+  add_ribbons(
+    data = ci_pred,
     x = ~degree_pct,
-    y = ~pred,
-    inherit = FALSE,   # don't reuse marker aesthetics
-    name = "Line of best fit"
+    ymin = ~lwr,
+    ymax = ~upr,
+    name = "95% CI",
+    showlegend = FALSE,
+    hoverinfo = "none",
+    inherit = FALSE,
+    fillcolor = "rgba(6, 26, 97, 0.15)",
+    line = list(color = "rgba(0,0,0,0)")
+  ) %>%
+  add_lines(
+    data = pred_data,
+    x = ~degree_pct,
+    y = ~.pred,
+    name = "Regression",
+    hoverinfo = "none",
+    inherit = FALSE,
+    line = list(width = 3, color = "#D92702")
+  ) %>% 
+  style(
+    traces = 1,
+    hovertemplate = paste(
+      "<b>%{text}</b><br>",
+      "Degree pct: %{x:.1f}%<br>",
+      "APC: %{y:.3f}<extra></extra>"
+    )
+  ) %>%
+  layout(
+    title = list(
+      text = "Antidepressant prescribing vs degree-level education<br>
+              <sup>Scottish Health Boards, Jan–Jun 2025</sup>"
+    ),
+    xaxis = list(title = "Degree-level qualification (%)"),
+    yaxis = list(title = "Prescriptions per capita")
   )
+graph2
 ```
 
 #### Results
 
 A surface level interpretation of this graph says that there is a strong negative correlation between the variables: health boards with a higher percentage of degree holders have a lower antidepressant prescribing rate. To take just the extremes, Dumfries and Galloway with the highest prescribing rate sits at the far left of the graph, among the bottom health boards in degree attainment, while Lothian has the lowest prescribing rate and is directly juxtaposed, with the highest degree attainment by a large margin. In isolation, this is a strong point backing the negative correlation.
 
-However, the standard error is of moderate size, and the majority of the health boards are distributed quite close to each other in education level, while still displaying a range of prescription rates, detracting from the credibility of the suggested relationship.
+However, the confidence intervals are wide, and the majority of the health boards are distributed quite closely to each other in education level, while still displaying a sizeable range of prescription rates, detracting from the credibility of the suggested relationship.
 
-It is clear there is variation in the variables, and possibly a relationship between them, but the geographical stratification is too large at the level of health boards. To try and get a clearer image of the relationship, let's do the same analysis, but with Scottish data zones, focusing in on much smaller localities.
+It is clear that the variables are inequal across the health boards, and though there is possibly a relationship between them, the geographical stratification is too large at the level of health boards to confidently determine this. To try and get a clearer image of the relationship, let's do the same analysis, but with Scottish data zones, focusing in on much smaller localities.
 
-# Part 2: Focusing in
+# Part 4: Focusing in
 
 The original prescribing data already had GP practice codes, so we can map the prescriptions to data zones using a practice lookup data set from Public Health Scotland. After that we'll do the same as we did to the prescribing data before, finding the total prescriptions per month and then averaging, just this time by data zone instead of health board, and then adding on the census data for education, again using the flexible table builder with data zones instead of health boards.
 
@@ -359,7 +391,7 @@ ggplotly(graph3, tooltip = c("x", "y"))
 
 This graph communicates a similar relationship as the data on health boards: that a higher educational attainment is negatively correlated with antidepressant prescribing. Again though, the data doesn't confidently support the suggestion, with only a weakly negative slope. Most of the data zones are distributed around 0-3 antidepressants per capita, with a select few outliers near 10 and even one above 15. These few data zones with abnormally high prescribing rates are on the lower end in educational attainment, but this doesn't reflect a cut and dry, certain relationship.
 
-## Next Steps
+# Next Steps
 
 Despite the uncertainty of the visualisations produced, there are still valid conclusions to be drawn from this exploration.
 
@@ -377,7 +409,7 @@ It is clear that there are localities with significantly high antidepressant pre
 -   do i have to set a seed for linear regression?
 -   gen ai acknowledgement
 
-## References
+# References
 
 1.  Bergvall, S., Fernström, C., Ranehill, E., & Sandberg, A. (2025). The impact of PhD studies on mental health-a longitudinal population study. Journal of health economics, 104, 103070. Advance online publication. <https://doi.org/10.1016/j.jhealeco.2025.103070>
 2.  Maguire, A., Moriarty, J., O’Reilly, D. et al. (2017). Education as a predictor of antidepressant and anxiolytic medication use after bereavement: a population-based record linkage study. Qual Life Res 26, 1251–1262. <https://doi.org/10.1007/s11136-016-1440-1>
