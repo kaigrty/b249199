@@ -105,14 +105,63 @@ Once we've done that, we can investigate the prescribing rates of the health boa
 education_antidepressants <- education_antidepressants %>% 
   mutate(apc = mean_items / total, degree_pct = degree_level_qualifications_or_above_education_qualifications_not_already_mentioned_including_foreign_qualifications/total*100) # total prescriptions per capita and percentage of degree holders in each healthboard
 
-graph1 <- education_antidepressants %>% 
-  ggplot(aes(apc, reorder(hb_name, apc), fill = apc)) +
-  geom_col(stat="identity") +
-  coord_cartesian(xlim=c(0.05, 0.2)) + # zoom in on the disparities between boards
-  labs(x = "Monthly antidepressant prescriptions per capita", y = "Health board", title = "Total antidepressant prescriptions per capita, by Scottish Health Board", subtitle = "Prescription data from January to August 2025") +
-  scale_fill_steps(low = "#56B1F7", high = "#132B43") +
-  guides(fill = "none")
-ggplotly(graph1, tooltip = "x")
+education_antidepressants %>% 
+  select(hb_name, mean_items, total, apc) %>% 
+  arrange(desc(apc)) %>% 
+  gt(
+    rowname_col   = "hb_name"
+  ) %>% 
+  tab_stubhead(label = "Health board") %>% 
+  cols_label(
+    mean_items = "Average monthly items",
+    total      = "Population",
+    apc        = "Prescriptions per capita"
+  ) %>% 
+  tab_spanner(
+    label = "Prescribing metrics",
+    columns = c(mean_items, apc)
+  ) %>% 
+  fmt_number(
+    columns = c(mean_items, apc),
+    decimals = 2
+  ) %>% 
+  fmt_number(
+    columns = total,
+    decimals = 0,
+    use_seps = TRUE
+  ) %>% 
+  grand_summary_rows(
+    columns = c(mean_items, apc),
+    fns = list(
+      "Mean" = ~ mean(.x, na.rm = TRUE)
+    )
+  ) %>% 
+  tab_source_note(
+    source_note = "Data: Public Health Scotland; Prescriptions in the Community"
+  ) %>% 
+  tab_style(
+  style = list(
+    cell_fill(color = "#e5e5e5"),
+    cell_text(weight = "bold")
+  ),
+  locations = cells_column_labels(everything())
+  ) %>%
+  tab_style(
+  style = cell_text(align = "left"),
+  locations = list(
+    cells_column_labels(everything()),
+    cells_body(columns = everything())
+  )) %>% 
+  tab_header(
+    title = "Antidepressant Prescribing by Scottish Health Board",
+    subtitle = "Prescription data from January to August 2025"
+  ) %>% 
+  tab_options(
+    table.width = pct(80),
+    heading.title.font.size = 24,
+    heading.subtitle.font.size = 14,
+    column_labels.font.weight = "bold"
+  )
 ```
 
 #### Results
@@ -122,7 +171,7 @@ This graph shows the average monthly antidepressant prescriptions per capita fro
 Now, we can explore the relationship between these antidepressant prescription rates and the education data. We'll do this by using the percentage of each health board's population that are degree holders as calculated earlier, and running a linear regression to determine the correlation between the two variables.
 
 ```{r message=FALSE, warning=FALSE}
-graph2 <- ggplot(education_antidepressants, aes(x = degree_pct, y = apc, fill = hb_name)) +
+graph1 <- ggplot(education_antidepressants, aes(x = degree_pct, y = apc, fill = hb_name)) +
   geom_point(size = 3) +
   geom_smooth(method = "lm", se = TRUE) +
   labs(
@@ -131,7 +180,7 @@ graph2 <- ggplot(education_antidepressants, aes(x = degree_pct, y = apc, fill = 
     title = "Association between education level and antidepressant prescribing by Scottish Health board",
     subtitle = "Prescribing data from January to August 2025"
   )
-ggplotly(graph2)
+ggplotly(graph1)
 
 plot_ly(education_antidepressants,
         x = ~degree_pct,
@@ -209,7 +258,7 @@ antidepressants_education_dz <- antidepressants_education_dz %>%
   mutate(apc = mean_items/total, # antidepressants per capita
          degree_pct = (degree_level_qualifications_or_above_education_qualifications_not_already_mentioned_including_foreign_qualifications/total)*100) # degree holder percentage for each data zone
 
-graph3 <- ggplot(antidepressants_education_dz, aes(x = degree_pct, y = apc)) +
+graph2 <- ggplot(antidepressants_education_dz, aes(x = degree_pct, y = apc)) +
   geom_point(size = 3) +
   geom_smooth(method = "lm", se = TRUE) +
   labs(
@@ -218,7 +267,7 @@ graph3 <- ggplot(antidepressants_education_dz, aes(x = degree_pct, y = apc)) +
     title = "Association between education level and antidepressant prescribing by Scottish Data Zone",
     subtitle = "Prescribing data from January to August 2025"
   )
-ggplotly(graph3, tooltip = c("x", "y"))
+ggplotly(graph2, tooltip = c("x", "y"))
 ```
 
 This graph communicates a similar relationship as the data on health boards: that a higher educational attainment is negatively correlated with antidepressant prescribing. Again though, the data doesn't confidently support the suggestion, with only a weakly negative slope. Most of the data zones are distributed around 0-3 antidepressants per capita, with a select few outliers near 10 and even one above 15. These few data zones with abnormally high prescribing rates are on the lower end in educational attainment, but this doesn't reflect a cut and dry, certain relationship.
