@@ -1,12 +1,12 @@
 ---
 title: "Relationship between antidepressant prescriptions and education across Scotland"
 output:
-  pdf_document: default
   html_document:
     toc: true
     toc_depth: 3
     toc_float: true
     theme: lumen
+  pdf_document: default
 date: "2025-11-04"
 ---
 
@@ -51,6 +51,7 @@ In order to identify the code for antidepressants, we can look at the BNF code i
 
 BNF information is available at: <https://opendata.nhsbsa.net/dataset/bnf-code-information-current-year>
 
+<<<<<<< HEAD
 ```{r message=FALSE, warning=FALSE}
 BNF_info <- read_csv(here("data/bnf_code_current_202506_version_88.csv")) %>% 
   filter(BNF_SECTION == "Antidepressant drugs")  # filter the data to show just the antidepressants
