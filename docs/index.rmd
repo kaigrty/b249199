@@ -6,7 +6,9 @@ output:
     toc_depth: 3
     toc_float: true
     theme: lumen
+    css: styles.css 
   pdf_document: default
+always_allow_html: true
 date: "2025-11-04"
 ---
 
@@ -181,7 +183,7 @@ The table shows the average monthly antidepressant prescriptions per capita from
 
 Now, using the same census data, we should have a look at the education levels of each health board relative to each other, so we can get an idea of the landscape of this variable.
 
-```{r}
+```{r fig.height=8, fig.width=14, message=FALSE, warning=FALSE}
 education_data <- education_antidepressants %>% 
   pivot_longer(
     c(NA_or_under_16:degree),
@@ -256,7 +258,7 @@ ggplotly(graph1, tooltip = "text")
 
 We're now ready to look into the relationship between antidepressant prescriptions and education level. We'll do this by using the percentage of each health board's population that are degree holders as calculated earlier, and running a linear regression to determine the correlation between the two variables.
 
-```{r message=FALSE, warning=FALSE}
+```{r message=FALSE, warning=FALSE, fig.width = 14, fig.height = 8}
 library(tidymodels)
 
 lm_model <- linear_reg() %>% 
@@ -316,7 +318,7 @@ graph2 <- plot_ly(
     traces = 1,
     hovertemplate = paste(
       "<b>%{text}</b><br>",
-      "Degree pct: %{x:.1f}%<br>",
+      "Degree %: %{x:.1f}%<br>",
       "APC: %{y:.3f}<extra></extra>"
     )
   ) %>%
@@ -372,21 +374,30 @@ antidepressants_education_dz <- inner_join(antidepressants_practice, census_dz)
 
 Now, we can just add the antidepressants per capita and degree holder % to the data set and we can get a similar linear regression to what we had above, with data zones this time.
 
-```{r message=FALSE, warning=FALSE}
+```{r message=FALSE, warning=FALSE, fig.width = 14, fig.height = 8}
 antidepressants_education_dz <- antidepressants_education_dz %>% 
   mutate(apc = mean_items/total, # antidepressants per capita
          degree_pct = (degree_level_qualifications_or_above_education_qualifications_not_already_mentioned_including_foreign_qualifications/total)*100) # degree holder percentage for each data zone
 
-graph3 <- ggplot(antidepressants_education_dz, aes(x = degree_pct, y = apc)) +
-  geom_point(size = 3) +
-  geom_smooth(method = "lm", se = TRUE) +
+ggplot(antidepressants_education_dz, aes(x = degree_pct, y = apc)) +
+  geom_point(alpha = 0.4, size = 1.5) +
+  geom_smooth(method = "lm", se = TRUE, linetype = "dashed", linewidth = 1.2, color = "red") +
+  scale_colour_viridis_c(option = "plasma") +
+  geom_density_2d_filled(alpha = 0.3) +
+  theme_minimal(base_size = 12) +
+  theme(
+  plot.title = element_text(face = "bold"),
+  legend.position = "right",
+  legend.title = element_text(size = 10),
+  legend.text  = element_text(size = 8)
+  ) +
   labs(
     x = "Degree holders (%)",
     y = "Antidepressant prescriptions per capita",
-    title = "Association between education level and antidepressant prescribing by Scottish Data Zone",
-    subtitle = "Prescribing data from January to August 2025"
+    title = "Antidepressant prescriptions vs Education level",
+    subtitle = "Stratified by Scottish data zone",
+    caption = "Data: Public Health Scotland; Prescriptions in the Community, January to August 2025"
   )
-ggplotly(graph3, tooltip = c("x", "y"))
 ```
 
 This graph communicates a similar relationship as the data on health boards: that a higher educational attainment is negatively correlated with antidepressant prescribing. Again though, the data doesn't confidently support the suggestion, with only a weakly negative slope. Most of the data zones are distributed around 0-3 antidepressants per capita, with a select few outliers near 10 and even one above 15. These few data zones with abnormally high prescribing rates are on the lower end in educational attainment, but this doesn't reflect a cut and dry, certain relationship.
@@ -396,18 +407,6 @@ This graph communicates a similar relationship as the data on health boards: tha
 Despite the uncertainty of the visualisations produced, there are still valid conclusions to be drawn from this exploration.
 
 It is clear that there are localities with significantly high antidepressant prescribing rates relative to the rest of the country, and it's unlikely to be a coincidence that these are areas with a relatively low education attainment rate. It would be valuable to further investigate just these outlying data zones, to identify disparities in other characteristics of the area like deficient/harmful infrastructure or local policy, insufficient access to support schemes, or disadvantageous environmental factors among many others. These are all factors that would impact both education attainment and antidepressant use, as the two are inextricably linked and involved in constant, lifelong interactions with personal, communal, and systemic aspects of being.
-
--   table of contents with headings for each figure/visualisation
--   explore dosages?
--   could find geometric dataset for healthboards in scotland, then colour code the prescriptions to population ratio
--   warning in census data read (line 100)
--   chunk titles
--   table of contents with navigation, headings to split the report up a bit(may need to revise flow somewhat)
--   gt table somewhere maybe
--   look over joins
--   do i have to remove outlier in final graph?
--   do i have to set a seed for linear regression?
--   gen ai acknowledgement
 
 # References
 
