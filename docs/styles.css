@@ -1,8 +1,8 @@
 .main-container,
 .container,
 .container-fluid {
-  max-width: 80% !important;
-  width: 80% !important;
+  max-width: 1200px !important;
+  width: 1200px !important;
   margin: 0 auto;
 }
 body {
