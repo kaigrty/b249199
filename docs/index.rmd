@@ -1,15 +1,17 @@
 ---
-title: "Relationship between antidepressant prescriptions and education across Scotland"
+title: "The relationship between antidepressant prescriptions and education across Scotland"
 output:
   html_document:
     toc: true
     toc_depth: 3
-    toc_float: false
-    theme: lumen
+    toc_float:
+      collapsed: true
+    theme: cerulean
+    code_folding: hide
     css: styles.css 
   pdf_document: default
 always_allow_html: true
-date: "2025-11-04"
+date: "2025-12-01"
 ---
 
 ```{r setup, echo = TRUE, message = FALSE, warning = FALSE}
@@ -67,7 +69,7 @@ BNF information is available at: <https://opendata.nhsbsa.net/dataset/bnf-code-i
 ```{r}
 BNF_info <- read_csv(here("data/bnf_code_current_202506_version_88.csv")) %>% 
   filter(BNF_SECTION == "Antidepressant drugs")  # filter the data to show just the antidepressants
-unique(BNF_info$BNF_SECTION_CODE)  # 0403 is the code we use to focus our prescribing data
+invisible(unique(BNF_info$BNF_SECTION_CODE))  # 0403 is the code we use to focus our prescribing data
 
 antidepressants <- all_prescribing %>% 
   filter(str_starts(bnf_item_code, "0403"), hbt != "SB0806") # remove special health board as we filter for antidepressants
@@ -92,7 +94,7 @@ hb_names <- read_csv(here("data/hb_names.csv")) %>%
   mutate(hb_name = gsub("^NHS ", "", hb_name)) # removes NHS prefix for each health board to match the naming conventions in the census data
 
 data_antidepressants <- inner_join(hb_names, antidepressants_avg, by = c("hb" = "hbt")) 
-anti_join(hb_names, antidepressants_avg, by = c("hb" = "hbt")) # 4 codes dropped from hb_names, explained by  boundary changes as mentioned on the Public Health Scotland site
+invisible(anti_join(hb_names, antidepressants_avg, by = c("hb" = "hbt"))) # 4 codes dropped from hb_names, explained by  boundary changes as mentioned on the Public Health Scotland site
   
 # we have to load the census data as raw text first to extract just the required information
 raw_lines <- read_lines(here("data/education_level_healthboard.csv"))
@@ -112,17 +114,12 @@ census_data22 <- read_csv(
          degree = degree_level_qualifications_or_above_education_qualifications_not_already_mentioned_including_foreign_qualifications,
          apprenticeship = apprenticeship_qualifications) %>% 
   remove_empty("cols") 
-  
 education_antidepressants <- inner_join(data_antidepressants, census_data22, by = c("hb_name" = "hb"))
 
 # we can use the total column (health board population) from the census data to convert the flat numbers into proportions
 education_antidepressants <- education_antidepressants %>% 
   mutate(apc = mean_items / total, degree_pct = degree/total*100) # monthly prescriptions per capita and percentage of degree holders in each healthboard(for sorting in the graph + later analysis)
-```
 
-Now the data is ready for investigating the prescribing rates of the health boards.
-
-```{r}
 education_antidepressants %>% 
   select(hb_name, mean_items, total, apc) %>% 
   arrange(desc(apc)) %>% 
@@ -276,9 +273,7 @@ new_data <- tibble(degree_pct = seq(min(education_antidepressants$degree_pct),
 
 pred_data <- predict(lm_model, new_data = new_data) %>% 
   bind_cols(new_data)
-
 lm_fit <- lm(apc ~ degree_pct, data = education_antidepressants)
-
 ci_pred <- as_tibble(predict(lm_fit, newdata = new_data, interval = "confidence")) %>% # ci intervals
   bind_cols(new_data)
 
@@ -378,12 +373,8 @@ census_dz <- read_csv(
 
 antidepressants_education_dz <- inner_join(antidepressants_practice, census_dz, by = "data_zone")
 
-anti_join(antidepressants_practice, census_dz, by = "data_zone") # checking for mismatches/missing values
-```
+invisible(anti_join(antidepressants_practice, census_dz, by = "data_zone")) # checking for mismatches/missing values
 
-Now, adding the antidepressants per capita and degree holder % to the data set will give a similar linear regression to what was shown above, with data zones this time.
-
-```{r}
 antidepressants_education_dz <- antidepressants_education_dz %>% 
   mutate(apc = mean_items/total, # antidepressants per capita
          degree_pct = (degree/total)*100) # degree holder percentage for each data zone
